@@ -3,13 +3,10 @@
   <ribbon>
     <tabs>
       <tab idMso="TabAddIns">
-        <group id="ContentGroup" label="Content">
-          <button id="textButton" label="Insert Text"
-                  screentip="Text" onAction="OnTextButton"
-                  supertip="Inserts text at the cursor location."/>
-          <button id="tableButton" label="Insert Table"
-                  screentip="Table" onAction="OnTableButton"
-                  supertip="Inserts a table at the cursor location."/>
+        <group id="SteelSectionGroup" label="Steel Section">
+          <button id="CalcSteelSectionButton" label="Calc Steel Section"
+                  screentip="Steel Section" onAction="OnCalcSteelSectionButton"
+                  supertip="Calc Steel Section."/>
         </group>
       </tab>
     </tabs>

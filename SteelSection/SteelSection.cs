@@ -14,9 +14,11 @@ namespace SteelSection
 
         public static double[] CalcSteelSection(string input)
         {
-            var results = new double[3];
+            double[] results = {0, 0, 0};
+            if (input.Length == 0) return results;
             if (input[0] == 'H') results = CalcHBeam(input);
             else if (input[0] == 'C') results = CalcCBeam(input);
+            else if (input[0] == 'Z') results = CalcZBeam(input);
 
             return results;
         }
@@ -49,7 +51,25 @@ namespace SteelSection
 
             var sectionalArea = (h + b * 2 + c * 2 - t * 4) * t / Math.Pow(1000, 2);
             var theoreticalWeight = sectionalArea * Density;
-            var surfaceArea = ((h + b * 2 + c * 2 + 1 / 2d * 3.14 * t * 4) * 2 + t * 2) / 1000;
+            var surfaceArea = ((h + b * 2 + c * 2 - t * 2 * 4 + 1 / 2d * 3.14 * t * 4) * 2 + t * 2) / 1000;
+            double[] results = {sectionalArea, theoreticalWeight, surfaceArea};
+
+            return results;
+        }
+
+        private static double[] CalcZBeam(string input)
+        {
+            var zBeam = new ZBeam(input);
+
+            var h = zBeam.H;
+            var b = zBeam.B;
+            var c = zBeam.C;
+            var t = zBeam.T;
+
+            var sectionalArea = (h + b * 2 + c * 2 - t * 2 - t * 3.14 * 45 / 180) * t / Math.Pow(1000, 2);
+            var theoreticalWeight = sectionalArea * Density;
+            var surfaceArea = ((h + b * 2 + c * 2 - t * 2 * 4 + 1 / 2d * 3.14 * t * 2 + t * 3.14 * 45 / 180 * 2) * 2 +
+                               t * 2) / 1000;
             double[] results = {sectionalArea, theoreticalWeight, surfaceArea};
 
             return results;
@@ -76,6 +96,22 @@ namespace SteelSection
             public readonly double H, B, C, T;
 
             public CBeam(string input)
+            {
+                var r = ReadSteelSection(input);
+                if (r.Length != 4) throw new Exception("Not Match != 4 " + input);
+                var s = Array.ConvertAll(r, double.Parse);
+                H = s[0];
+                B = s[1];
+                C = s[2];
+                T = s[3];
+            }
+        }
+
+        private struct ZBeam
+        {
+            public readonly double H, B, C, T;
+
+            public ZBeam(string input)
             {
                 var r = ReadSteelSection(input);
                 if (r.Length != 4) throw new Exception("Not Match != 4 " + input);

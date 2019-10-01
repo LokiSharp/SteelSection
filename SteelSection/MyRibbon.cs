@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
+using Microsoft.Office.Interop.Excel;
 using Office = Microsoft.Office.Core;
-using Excel = Microsoft.Office.Interop.Excel;
+using static SteelSection.SteelSection;
 
 // TODO:  Follow these steps to enable the Ribbon (XML) item:
 
@@ -33,10 +31,6 @@ namespace SteelSection
     public class MyRibbon : Office.IRibbonExtensibility
     {
         private Office.IRibbonUI ribbon;
- 
-        public MyRibbon()
-        {
-        }
 
         #region IRibbonExtensibility Members
 
@@ -47,12 +41,30 @@ namespace SteelSection
 
         #endregion
 
+
+        public void OnCalcSteelSectionButton(Office.IRibbonControl control)
+        {
+            var i = 0;
+            Range range = Globals.ThisAddIn.Application.Selection;
+            foreach (Range cell in range)
+            {
+                var offset = 0;
+                var result = CalcSteelSection(cell.Text);
+                i += 1;
+
+                cell.Offset[0, offset + 1].Value2 = result[0];
+                cell.Offset[0, offset + 2].Value2 = result[1];
+                cell.Offset[0, offset + 3].Value2 = result[2];
+            }
+        }
+
         #region Ribbon Callbacks
+
         //Create callback methods here. For more information about adding callback methods, visit https://go.microsoft.com/fwlink/?LinkID=271226
 
         public void Ribbon_Load(Office.IRibbonUI ribbonUI)
         {
-            this.ribbon = ribbonUI;
+            ribbon = ribbonUI;
         }
 
         #endregion
@@ -61,21 +73,15 @@ namespace SteelSection
 
         private static string GetResourceText(string resourceName)
         {
-            Assembly asm = Assembly.GetExecutingAssembly();
-            string[] resourceNames = asm.GetManifestResourceNames();
-            for (int i = 0; i < resourceNames.Length; ++i)
-            {
+            var asm = Assembly.GetExecutingAssembly();
+            var resourceNames = asm.GetManifestResourceNames();
+            for (var i = 0; i < resourceNames.Length; ++i)
                 if (string.Compare(resourceName, resourceNames[i], StringComparison.OrdinalIgnoreCase) == 0)
-                {
-                    using (StreamReader resourceReader = new StreamReader(asm.GetManifestResourceStream(resourceNames[i])))
+                    using (var resourceReader = new StreamReader(asm.GetManifestResourceStream(resourceNames[i])))
                     {
-                        if (resourceReader != null)
-                        {
-                            return resourceReader.ReadToEnd();
-                        }
+                        if (resourceReader != null) return resourceReader.ReadToEnd();
                     }
-                }
-            }
+
             return null;
         }
 
