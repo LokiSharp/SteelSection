@@ -12,18 +12,18 @@ namespace SteelSection
             return s;
         }
 
-        public static double[] CalcSteelSection(string input)
+        public static double[] CalcSteelSection(string input, double density = Density)
         {
             double[] results = {0, 0, 0};
             if (input.Length == 0) return results;
-            if (input[0] == 'H') results = CalcHBeam(input);
-            else if (input[0] == 'C') results = CalcCBeam(input);
-            else if (input[0] == 'Z') results = CalcZBeam(input);
+            if (input[0] == 'H') results = CalcHBeam(input, density);
+            else if (input[0] == 'C') results = CalcCBeam(input, density);
+            else if (input[0] == 'Z') results = CalcZBeam(input, density);
 
             return results;
         }
 
-        private static double[] CalcHBeam(string input)
+        private static double[] CalcHBeam(string input, double density)
         {
             var hBeam = new HBeam(input);
 
@@ -33,14 +33,14 @@ namespace SteelSection
             var t = hBeam.T;
 
             var sectionalArea = ((h - t * 2) * tw + b * t * 2) / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * Density;
+            var theoreticalWeight = sectionalArea * density;
             var surfaceArea = (h * 2 + b * 4 - t * 2) / 1000;
             double[] results = {sectionalArea, theoreticalWeight, surfaceArea};
 
             return results;
         }
 
-        private static double[] CalcCBeam(string input)
+        private static double[] CalcCBeam(string input, double density)
         {
             var cBeam = new CBeam(input);
 
@@ -50,14 +50,14 @@ namespace SteelSection
             var t = cBeam.T;
 
             var sectionalArea = (h + b * 2 + c * 2 - t * 4) * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * Density;
+            var theoreticalWeight = sectionalArea * density;
             var surfaceArea = ((h + b * 2 + c * 2 - t * 2 * 4 + 1 / 2d * 3.14 * t * 4) * 2 + t * 2) / 1000;
             double[] results = {sectionalArea, theoreticalWeight, surfaceArea};
 
             return results;
         }
 
-        private static double[] CalcZBeam(string input)
+        private static double[] CalcZBeam(string input, double density)
         {
             var zBeam = new ZBeam(input);
 
@@ -67,7 +67,7 @@ namespace SteelSection
             var t = zBeam.T;
 
             var sectionalArea = (h + b * 2 + c * 2 - t * 2 - t * 3.14 * 45 / 180) * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * Density;
+            var theoreticalWeight = sectionalArea * density;
             var surfaceArea = ((h + b * 2 + c * 2 - t * 2 * 4 + 1 / 2d * 3.14 * t * 2 + t * 3.14 * 45 / 180 * 2) * 2 +
                                t * 2) / 1000;
             double[] results = {sectionalArea, theoreticalWeight, surfaceArea};

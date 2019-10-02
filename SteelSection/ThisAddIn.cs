@@ -5,12 +5,6 @@ namespace SteelSection
 {
     public partial class ThisAddIn
     {
-        protected override Office.IRibbonExtensibility CreateRibbonExtensibilityObject()
-        {
-            return new MyRibbon();
-        }
-
-
         private void ThisAddIn_Startup(object sender, EventArgs e)
         {
         }
