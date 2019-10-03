@@ -39,6 +39,9 @@
             this.CalcSteelSectionOffsetEditBox = this.Factory.CreateRibbonEditBox();
             this.DensityEditBox = this.Factory.CreateRibbonEditBox();
             this.CalcSteelSectionButton = this.Factory.CreateRibbonButton();
+            this.SectionalAreaCheckBox = this.Factory.CreateRibbonCheckBox();
+            this.TheoreticalWeightCheckBox = this.Factory.CreateRibbonCheckBox();
+            this.SurfaceAreaCheckBox = this.Factory.CreateRibbonCheckBox();
             this.SteelSectionTab.SuspendLayout();
             this.SteelSectionGroup.SuspendLayout();
             this.SuspendLayout();
@@ -55,6 +58,9 @@
             this.SteelSectionGroup.Items.Add(this.CalcSteelSectionOffsetEditBox);
             this.SteelSectionGroup.Items.Add(this.DensityEditBox);
             this.SteelSectionGroup.Items.Add(this.CalcSteelSectionButton);
+            this.SteelSectionGroup.Items.Add(this.SectionalAreaCheckBox);
+            this.SteelSectionGroup.Items.Add(this.TheoreticalWeightCheckBox);
+            this.SteelSectionGroup.Items.Add(this.SurfaceAreaCheckBox);
             this.SteelSectionGroup.Label = "Steel Section";
             this.SteelSectionGroup.Name = "SteelSectionGroup";
             // 
@@ -63,12 +69,15 @@
             this.CalcSteelSectionOffsetEditBox.Label = "Offset";
             this.CalcSteelSectionOffsetEditBox.MaxLength = 1;
             this.CalcSteelSectionOffsetEditBox.Name = "CalcSteelSectionOffsetEditBox";
+            this.CalcSteelSectionOffsetEditBox.SizeString = "1.00000";
             this.CalcSteelSectionOffsetEditBox.Text = "0";
             // 
             // DensityEditBox
             // 
             this.DensityEditBox.Label = "Density";
+            this.DensityEditBox.MaxLength = 7;
             this.DensityEditBox.Name = "DensityEditBox";
+            this.DensityEditBox.SizeString = "1.00000";
             this.DensityEditBox.Text = "7.85";
             // 
             // CalcSteelSectionButton
@@ -76,6 +85,24 @@
             this.CalcSteelSectionButton.Label = "Calc Steel Section";
             this.CalcSteelSectionButton.Name = "CalcSteelSectionButton";
             this.CalcSteelSectionButton.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.CalcSteelSectionButton_Click);
+            // 
+            // SectionalAreaCheckBox
+            // 
+            this.SectionalAreaCheckBox.Checked = true;
+            this.SectionalAreaCheckBox.Label = "Sectional Area";
+            this.SectionalAreaCheckBox.Name = "SectionalAreaCheckBox";
+            // 
+            // TheoreticalWeightCheckBox
+            // 
+            this.TheoreticalWeightCheckBox.Checked = true;
+            this.TheoreticalWeightCheckBox.Label = "Theoretical Weight";
+            this.TheoreticalWeightCheckBox.Name = "TheoreticalWeightCheckBox";
+            // 
+            // SurfaceAreaCheckBox
+            // 
+            this.SurfaceAreaCheckBox.Checked = true;
+            this.SurfaceAreaCheckBox.Label = "Surface Area";
+            this.SurfaceAreaCheckBox.Name = "SurfaceAreaCheckBox";
             // 
             // SteelSectionRibbon
             // 
@@ -98,6 +125,9 @@
         internal Microsoft.Office.Tools.Ribbon.RibbonEditBox CalcSteelSectionOffsetEditBox;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton CalcSteelSectionButton;
         internal Microsoft.Office.Tools.Ribbon.RibbonEditBox DensityEditBox;
+        internal Microsoft.Office.Tools.Ribbon.RibbonCheckBox SectionalAreaCheckBox;
+        internal Microsoft.Office.Tools.Ribbon.RibbonCheckBox TheoreticalWeightCheckBox;
+        internal Microsoft.Office.Tools.Ribbon.RibbonCheckBox SurfaceAreaCheckBox;
     }
 
     partial class ThisRibbonCollection
