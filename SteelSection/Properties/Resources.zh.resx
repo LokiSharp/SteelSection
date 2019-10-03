@@ -118,27 +118,27 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Calc Steel Section" xml:space="preserve">
-    <value>Calc Steel Section</value>
+    <value>计算钢构件</value>
   </data>
   <data name="Density" xml:space="preserve">
-    <value>Density:</value>
+    <value>密度：</value>
   </data>
   <data name="Limit" xml:space="preserve">
-    <value>Limit:</value>
+    <value>限制：</value>
   </data>
   <data name="Offset" xml:space="preserve">
-    <value>Offset:</value>
+    <value>偏移：</value>
   </data>
   <data name="Sectional Area" xml:space="preserve">
-    <value>Sectional Area</value>
+    <value>截面积</value>
   </data>
   <data name="Steel Section" xml:space="preserve">
-    <value>Steel Section</value>
+    <value>钢构件</value>
   </data>
   <data name="Surface Area" xml:space="preserve">
-    <value>Surface Area</value>
+    <value>表面积</value>
   </data>
   <data name="Theoretical Weight" xml:space="preserve">
-    <value>Theoretical Weight</value>
+    <value>理论重量</value>
   </data>
 </root>

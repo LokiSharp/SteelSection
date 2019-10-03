@@ -13,7 +13,7 @@ namespace SteelSection
     public static class SteelSection
     {
         private const double Density = 7.85;
-        private static readonly IEnumerable<CsvIBeam> csvIBeam = ReadResourceDataFileStream("SteelSection.data.IBeam.csv").GetRecords<CsvIBeam>();
+        
 
         private static (string type, string[] sectional) ParseSteelSection(string input)
         {
@@ -110,9 +110,10 @@ namespace SteelSection
         private static double[] CalcIBeam(IReadOnlyList<string> type, double density)
         {
             if (type.Count != 1) throw new Exception("Not Match != 1 ");
+            IEnumerable<CsvIBeam> csvIBeam = ReadResourceDataFileStream("SteelSection.Resources.data.IBeam.csv").GetRecords<CsvIBeam>();
             var filtered = csvIBeam.First(r => r.Type == type[0]);
-            var sectionalArea = filtered.SectionalArea / 7.85 * density;
-            var theoreticalWeight = filtered.TheoreticalWeight;
+            var sectionalArea = filtered.SectionalArea / 1000 / 1000 / 7.85 * density;
+            var theoreticalWeight = filtered.TheoreticalWeight / 1000;
             double[] results = {sectionalArea, theoreticalWeight, 0.0};
             return results;
         }

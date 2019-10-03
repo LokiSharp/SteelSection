@@ -59,5 +59,77 @@ namespace SteelSection.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Calc Steel Section.
+        /// </summary>
+        internal static string Calc_Steel_Section {
+            get {
+                return ResourceManager.GetString("Calc Steel Section", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Density:.
+        /// </summary>
+        internal static string Density {
+            get {
+                return ResourceManager.GetString("Density", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Limit:.
+        /// </summary>
+        internal static string Limit {
+            get {
+                return ResourceManager.GetString("Limit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Offset:.
+        /// </summary>
+        internal static string Offset {
+            get {
+                return ResourceManager.GetString("Offset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sectional Area.
+        /// </summary>
+        internal static string Sectional_Area {
+            get {
+                return ResourceManager.GetString("Sectional Area", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Steel Section.
+        /// </summary>
+        internal static string Steel_Section {
+            get {
+                return ResourceManager.GetString("Steel Section", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Surface Area.
+        /// </summary>
+        internal static string Surface_Area {
+            get {
+                return ResourceManager.GetString("Surface Area", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Theoretical Weight.
+        /// </summary>
+        internal static string Theoretical_Weight {
+            get {
+                return ResourceManager.GetString("Theoretical Weight", resourceCulture);
+            }
+        }
     }
 }
