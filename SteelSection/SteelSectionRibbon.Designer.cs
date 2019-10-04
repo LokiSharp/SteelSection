@@ -88,7 +88,7 @@
             this.LimitEditBox.MaxLength = 7;
             this.LimitEditBox.Name = "LimitEditBox";
             this.LimitEditBox.SizeString = "1.00000";
-            this.LimitEditBox.Text = "100";
+            this.LimitEditBox.Text = "5000";
             // 
             // SectionalAreaCheckBox
             // 

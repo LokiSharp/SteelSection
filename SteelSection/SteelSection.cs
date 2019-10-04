@@ -117,8 +117,8 @@ namespace SteelSection
             // ReSharper disable once InconsistentNaming
             var IBeamCsvReader = GetResourceDataReader("SteelSection.Resources.data.IBeam.csv").GetRecords<CsvIBeam>();
             var filtered = IBeamCsvReader.First(r => r.Type == type[0]);
-            var sectionalArea = filtered.SectionalArea / 1000 / 1000 / 7.85 * density;
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000;
+            var sectionalArea = filtered.SectionalArea / 1000 / 1000;
+            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * density;
             double[] results = {sectionalArea, theoreticalWeight, 0.0};
             return results;
         }
@@ -130,9 +130,10 @@ namespace SteelSection
             var IBeamCsvReader =
                 GetResourceDataReader("SteelSection.Resources.data.HXBeam.csv").GetRecords<CsvHxBeam>();
             var filtered = IBeamCsvReader.First(r => r.Type == $"{type}{sectional[0]}*{sectional[1]}");
-            var sectionalArea = filtered.SectionalArea / 1000 / 1000 / 7.85 * density;
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000;
-            double[] results = {sectionalArea, theoreticalWeight, 0.0};
+            var sectionalArea = filtered.SectionalArea / 1000 / 1000;
+            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * density;
+            var surfaceArea = (filtered.H * 2 + filtered.B * 4 - filtered.T1 * 2) / 1000;
+            double[] results = {sectionalArea, theoreticalWeight, surfaceArea};
             return results;
         }
 
