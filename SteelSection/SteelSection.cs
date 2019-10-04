@@ -19,8 +19,8 @@ namespace SteelSection
         {
             try
             {
-                var inputSplit = Regex.Split(input, @"([A-Za-z\u4e00-\u9fa5\[]+)([\d\.A-Za-z\*]+)");
-                return (type: inputSplit[1], sectional: inputSplit[2].Split('*', 'x', 'X'));
+                var inputSplit = Regex.Split(input, @"([A-Za-z\u4e00-\u9fa5\[]+)([\d\.A-Za-z\*×]+)");
+                return (type: inputSplit[1], sectional: inputSplit[2].Split('*', 'x', 'X', '×'));
             }
             catch (IndexOutOfRangeException)
             {
@@ -37,6 +37,11 @@ namespace SteelSection
                 case "H":
                 case "H型钢":
                     return CalcHBeam(sectional, density);
+                case "HW":
+                case "HM":
+                case "HN":
+                case "HT":
+                    return CalcHxBeam(type, sectional, density);
                 case "C":
                 case "C型钢":
                     return CalcCBeam(sectional, density);
@@ -53,7 +58,7 @@ namespace SteelSection
 
         private static double[] CalcHBeam(string[] sectional, double density)
         {
-            if (sectional.Length != 4) throw new Exception("Not Match != 4 ");
+            if (sectional.Length != 4) throw new Exception("Not Match ");
             var s = Array.ConvertAll(sectional, double.Parse);
 
             var h = s[0];
@@ -71,7 +76,7 @@ namespace SteelSection
 
         private static double[] CalcCBeam(string[] sectional, double density)
         {
-            if (sectional.Length != 4) throw new Exception("Not Match != 4 ");
+            if (sectional.Length != 4) throw new Exception("Not Match ");
             var s = Array.ConvertAll(sectional, double.Parse);
 
             var h = s[0];
@@ -89,7 +94,7 @@ namespace SteelSection
 
         private static double[] CalcZBeam(string[] sectional, double density)
         {
-            if (sectional.Length != 4) throw new Exception("Not Match != 4 ");
+            if (sectional.Length != 4) throw new Exception("Not Match ");
             var s = Array.ConvertAll(sectional, double.Parse);
 
             var h = s[0];
@@ -108,10 +113,23 @@ namespace SteelSection
 
         private static double[] CalcIBeam(IReadOnlyList<string> type, double density)
         {
-            if (type.Count != 1) throw new Exception("Not Match != 1 ");
+            if (type.Count != 1) throw new Exception("Not Match ");
             // ReSharper disable once InconsistentNaming
             var IBeamCsvReader = GetResourceDataReader("SteelSection.Resources.data.IBeam.csv").GetRecords<CsvIBeam>();
             var filtered = IBeamCsvReader.First(r => r.Type == type[0]);
+            var sectionalArea = filtered.SectionalArea / 1000 / 1000 / 7.85 * density;
+            var theoreticalWeight = filtered.TheoreticalWeight / 1000;
+            double[] results = {sectionalArea, theoreticalWeight, 0.0};
+            return results;
+        }
+
+        private static double[] CalcHxBeam(string type, IReadOnlyList<string> sectional, double density)
+        {
+            if (sectional.Count != 2) throw new Exception("Not Match ");
+            // ReSharper disable once InconsistentNaming
+            var IBeamCsvReader =
+                GetResourceDataReader("SteelSection.Resources.data.HXBeam.csv").GetRecords<CsvHxBeam>();
+            var filtered = IBeamCsvReader.First(r => r.Type == $"{type}{sectional[0]}*{sectional[1]}");
             var sectionalArea = filtered.SectionalArea / 1000 / 1000 / 7.85 * density;
             var theoreticalWeight = filtered.TheoreticalWeight / 1000;
             double[] results = {sectionalArea, theoreticalWeight, 0.0};
@@ -129,6 +147,7 @@ namespace SteelSection
 
         [SuppressMessage("ReSharper", "UnusedMember.Local")]
         [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
+        // ReSharper disable once ClassNeverInstantiated.Local
         private class CsvIBeam
         {
             public string Type { get; set; }
@@ -138,6 +157,21 @@ namespace SteelSection
             public double T { get; set; }
             public double R { get; set; }
             public double R1 { get; set; }
+            public double SectionalArea { get; set; }
+            public double TheoreticalWeight { get; set; }
+        }
+
+        [SuppressMessage("ReSharper", "UnusedMember.Local")]
+        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
+        // ReSharper disable once ClassNeverInstantiated.Local
+        private class CsvHxBeam
+        {
+            public string Type { get; set; }
+            public double H { get; set; }
+            public double B { get; set; }
+            public double T1 { get; set; }
+            public double T2 { get; set; }
+            public double R { get; set; }
             public double SectionalArea { get; set; }
             public double TheoreticalWeight { get; set; }
         }
