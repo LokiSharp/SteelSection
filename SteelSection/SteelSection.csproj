@@ -238,6 +238,7 @@
       <SubType>Code</SubType>
     </Compile>
     <EmbeddedResource Include="Resources\data\IBeam.csv" />
+    <None Include="Resources\data\HBeam.csv" />
     <None Include="SteelSection_TemporaryKey.pfx" />
     <None Include="ThisAddIn.Designer.xml">
       <DependentUpon>ThisAddIn.cs</DependentUpon>

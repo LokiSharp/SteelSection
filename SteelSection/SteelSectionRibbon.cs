@@ -14,34 +14,42 @@ namespace SteelSection
 
         private void CalcSteelSectionButton_Click(object sender, RibbonControlEventArgs e)
         {
-            var i = 0;
+            const int nullLimit = 100;
             Range range = Globals.ThisAddIn.Application.Selection;
-            var limit = int.Parse(LimitEditBox.Text);
-            foreach (var cell in range.Cast<Range>().TakeWhile(cell => i < limit))
+            var globalLimit = int.Parse(LimitEditBox.Text);
+
+            var globalCounter = 0;
+            var nullCounter = 0;
+            foreach (var cell in range.Cast<Range>().TakeWhile(cell => globalCounter < globalLimit && nullCounter < nullLimit))
             {
                 var density = double.Parse(DensityEditBox.Text);
                 var offset = int.Parse(CalcSteelSectionOffsetEditBox.Text);
                 var result = CalcSteelSection(cell.Text, density);
-                var j = 0;
+                globalCounter++;
+                if (Equals(result, null))
+                {
+                    nullCounter++;
+                    continue;
+                }
+
+                var offsetCounter = 0;
                 if (SectionalAreaCheckBox.Checked)
                 {
-                    j++;
-                    cell.Offset[0, offset + j].Value = result[0];
+                    offsetCounter++;
+                    cell.Offset[0, offset + offsetCounter].Value = result[0];
                 }
 
                 if (TheoreticalWeightCheckBox.Checked)
                 {
-                    j++;
-                    cell.Offset[0, offset + j].Value = result[1];
+                    offsetCounter++;
+                    cell.Offset[0, offset + offsetCounter].Value = result[1];
                 }
 
                 if (SurfaceAreaCheckBox.Checked)
                 {
-                    j++;
-                    cell.Offset[0, offset + j].Value = result[2];
+                    offsetCounter++;
+                    cell.Offset[0, offset + offsetCounter].Value = result[2];
                 }
-
-                i++;
             }
         }
     }
