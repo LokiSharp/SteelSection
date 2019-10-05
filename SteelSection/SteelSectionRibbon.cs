@@ -20,7 +20,8 @@ namespace SteelSection
 
             var globalCounter = 0;
             var nullCounter = 0;
-            foreach (var cell in range.Cast<Range>().TakeWhile(cell => globalCounter < globalLimit && nullCounter < nullLimit))
+            foreach (var cell in range.Cast<Range>()
+                .TakeWhile(cell => globalCounter < globalLimit && nullCounter < nullLimit))
             {
                 var density = double.Parse(DensityEditBox.Text);
                 var offset = int.Parse(CalcSteelSectionOffsetEditBox.Text);

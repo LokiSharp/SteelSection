@@ -26,6 +26,7 @@
     <NoStandardLibraries>false</NoStandardLibraries>
     <RootNamespace>SteelSection</RootNamespace>
     <AssemblyName>SteelSection</AssemblyName>
+    <LangVersion>latest</LangVersion>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <DefineConstants>VSTO40</DefineConstants>
     <IsWebBootstrapper>False</IsWebBootstrapper>
@@ -239,6 +240,9 @@
     </Compile>
     <EmbeddedResource Include="Resources\data\IBeam.csv" />
     <EmbeddedResource Include="Resources\data\HXBeam.csv" />
+    <EmbeddedResource Include="Resources\data\CSteel.csv" />
+    <EmbeddedResource Include="Resources\data\ASteel.csv" />
+    <EmbeddedResource Include="Resources\data\UASteel.csv" />
     <None Include="SteelSection_TemporaryKey.pfx" />
     <None Include="ThisAddIn.Designer.xml">
       <DependentUpon>ThisAddIn.cs</DependentUpon>
@@ -261,6 +265,9 @@
   </PropertyGroup>
   <PropertyGroup>
     <ManifestCertificateThumbprint>474FFFC92AA30C91A19DBFA88AF3B01AD6555C37</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <!-- Include the build rules for a C# project. -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
