@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -190,7 +191,7 @@ namespace SteelSection
             var fs = thisAssembly.GetManifestResourceStream(filename);
             var sr = new StreamReader(fs ?? throw new InvalidOperationException(), Encoding.Default);
 
-            return new CsvReader(sr);
+            return new CsvReader(sr, CultureInfo.InvariantCulture);
         }
 
         [SuppressMessage("ReSharper", "UnusedMember.Local")]
