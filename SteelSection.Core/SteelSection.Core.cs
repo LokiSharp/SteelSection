@@ -9,7 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CsvHelper;
 
-namespace SteelSection
+namespace SteelSection.Core
 {
     public static class SteelSection
     {

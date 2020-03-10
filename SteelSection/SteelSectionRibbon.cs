@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using Microsoft.Office.Interop.Excel;
 using Microsoft.Office.Tools.Ribbon;
-using static SteelSection.SteelSection;
+using static SteelSection.Core.SteelSection;
 
 namespace SteelSection
 {
