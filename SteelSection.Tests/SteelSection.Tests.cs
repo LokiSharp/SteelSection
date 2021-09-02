@@ -12,7 +12,7 @@ namespace SteelSection.Tests
             var resultC = CalcSteelSection("C160*60*20*2.5");
             Assert.AreEqual(0.000775, resultC[0], 0.0000001);
             Assert.AreEqual(0.00608, resultC[1], 0.00001);
-            Assert.AreEqual(0.6363, resultC[2], 0.0001);
+            Assert.AreEqual(0.6257, resultC[2], 0.0001);
         }
 
         [TestMethod]
