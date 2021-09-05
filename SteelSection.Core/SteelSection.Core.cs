@@ -27,9 +27,9 @@ namespace SteelSection.Core
             }
         }
 
-        public static double[] CalcSteelSection(string input, double density)
+        public static (double, double, double) CalcSteelSection(string input, double density)
         {
-            if (density != 0) SteelSection._density = density;
+            if (density != 0) _density = density;
             var (type, sectional) = ParseSteelSection(input);
 
             switch (type)
@@ -38,170 +38,451 @@ namespace SteelSection.Core
                 case "H型钢":
                 {
                     var s = Array.ConvertAll(sectional, double.Parse);
-                    return CalcHBeam(s[0], s[1], s[1], s[2], s[3], s[3]);
+                    var steel = new HBeam(s[0], s[1], s[1], s[2], s[3], s[3]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
                 case "HW":
                 case "HM":
                 case "HN":
                 case "HT":
-                    return CalcHxBeam(type);
+                {
+                    var steel = new HxBeam($"{type}{sectional[0]}*{sectional[1]}");
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 case "C":
                 case "C型钢":
                 {
                     var s = Array.ConvertAll(sectional, double.Parse);
-                    return CalcCBeam(s[0], s[1], s[2], s[3]);
+                    var steel = new CBeam(s[0], s[1], s[2], s[3]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
                 case "Z":
                 case "Z型钢":
                 {
                     var s = Array.ConvertAll(sectional, double.Parse);
-                    return CalcZBeam(s[0], s[1], s[2], s[3]);
+                    var steel = new ZBeam(s[0], s[1], s[2], s[3]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
                 case "I":
                 case "UB":
                 case "工字钢":
-                    return CalcIBeam(type);
+                {
+                    var steel = new IBeam(sectional[0]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 case "[":
                 case "CS":
                 case "槽钢":
-                    return CalcCSteel(type);
+                {
+                    var steel = new CSteel(sectional[0]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 case "∟":
                 case "A":
                 case "角钢":
-                    return CalcASteel(type);
+                {
+                    var steel = new ASteel($"{sectional[0]}*{sectional[1]}");
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 case "UA":
-                    return CalcUaSteel(type);
+                {
+                    var steel = new UaSteel($"{sectional[0]}*{sectional[1]}*{sectional[2]}");
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 case "RT":
                 case "矩形管":
                 {
                     var s = Array.ConvertAll(sectional, double.Parse);
-                    return CalcRtBeam(s[0], s[1], s[2]);
+                    var steel = new RtBeam(s[0], s[1], s[2]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
                 case "CT":
                 case "圆管":
                 {
                     var s = Array.ConvertAll(sectional, double.Parse);
-                    return CalcCtBeam(s[0], s[1]);
+                    var steel = new CtBeam(s[0], s[1]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
                 default:
-                    return null;
+                    return (0.0, 0.0, 0.0);
             }
-        }
-
-        private static double[] CalcHBeam(double h, double b1, double b2, double tw, double t1, double t2)
-        {
-            var sectionalArea = ((h - (t1 + t2)) * tw + b1 * t1 + b2 * t2) / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * _density;
-            var surfaceArea = (h * 2 + b1 * 2 + b2 * 2 - t1 - t2) / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-
-            return results;
-        }
-
-        private static double[] CalcCBeam(double h, double b, double c, double t)
-        {
-            var sectionalArea = (h + b * 2 + c * 2 - t * 4) * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * _density;
-            var surfaceArea = ((h + b * 2 + c * 2 - t * 2 * 4) * 2 + 1 / 2d * Math.PI * t * 4 + t * 4) / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-
-            return results;
-        }
-
-        private static double[] CalcZBeam(double h, double b, double c, double t)
-        {
-            var sectionalArea = (h + b * 2 + c * 2 - t * 2 - t * Math.PI * 45 / 180) * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * _density;
-            var surfaceArea = ((h + b * 2 + c * 2 - t * 2 * 4 + 1 / 2d * Math.PI * t * 2 + t * Math.PI * 45 / 180 * 2) *
-                2 + t * 2) / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-
-            return results;
-        }
-
-        private static double[] CalcIBeam(string type)
-        {
-            var csvReader = GetResourceDataReader("SteelSection.Resources.data.IBeam.csv").GetRecords<CsvIBeam>();
-            var filtered = csvReader.First(r => r.Type == type);
-            var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
-            var surfaceArea = (filtered.H * 2 + filtered.B * 4) / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-            return results;
-        }
-
-        private static double[] CalcHxBeam(string type)
-        {
-            var csvReader = GetResourceDataReader("SteelSection.Resources.data.HXBeam.csv").GetRecords<CsvHxBeam>();
-            var filtered = csvReader.First(r => r.Type == type);
-            var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
-            var surfaceArea = (filtered.H * 2 + filtered.B * 4 - filtered.T1 * 2) / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-            return results;
-        }
-
-        private static double[] CalcCSteel(string type)
-        {
-            var csvReader = GetResourceDataReader("SteelSection.Resources.data.CSteel.csv").GetRecords<CsvCSteel>();
-            var filtered = csvReader.First(r => r.Type == type);
-            var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
-            var surfaceArea = (filtered.H * 2 + filtered.B * 4 - filtered.D * 2 - filtered.T * 2) / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-            return results;
-        }
-
-        private static double[] CalcASteel(string type)
-        {
-            var csvReader = GetResourceDataReader("SteelSection.Resources.data.ASteel.csv")
-                .GetRecords<CsvASteel>();
-            var filtered = csvReader.First(r => r.Type == type);
-            var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
-            var surfaceArea = (filtered.B * 4 - filtered.D * 2) / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-            return results;
-        }
-
-        private static double[] CalcUaSteel(string type)
-        {
-            var csvReader = GetResourceDataReader("SteelSection.Resources.data.UASteel.csv")
-                .GetRecords<CsvUaSteel>();
-            var filtered = csvReader.First(r => r.Type == type);
-            var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
-            var surfaceArea = (filtered.B1 * 2 + filtered.B2 * 2 - filtered.D * 2) / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-            return results;
-        }
-
-        private static double[] CalcRtBeam(double b1, double b2, double t)
-        {
-            var sectionalArea = (b1 + b2 - t * 2) * 2 * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * _density;
-            var surfaceArea = (b1 + b2) * 2 / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-            return results;
-        }
-
-        private static double[] CalcCtBeam(double d, double t)
-        {
-            var sectionalArea = (d - t) * 3.14 * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * _density;
-            var surfaceArea = d * 3.14 / 1000;
-            double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
-            return results;
         }
 
         private static CsvReader GetResourceDataReader(string filename)
         {
+            var projectName = Assembly.GetExecutingAssembly().GetName().Name;
             var thisAssembly = Assembly.GetExecutingAssembly();
-            var fs = thisAssembly.GetManifestResourceStream(filename);
+            var fs = thisAssembly.GetManifestResourceStream(projectName + ".Resources.data." + filename);
             var sr = new StreamReader(fs ?? throw new InvalidOperationException(), Encoding.Default);
 
             return new CsvReader(sr, CultureInfo.InvariantCulture);
         }
+
+        private interface ISteel
+        {
+            double CalcSectionalArea();
+            double CalcTheoreticalWeight();
+            double CalcSurfaceArea();
+        }
+
+        private class HBeam : ISteel
+        {
+            public HBeam(double h, double b1, double b2, double tw, double t1, double t2)
+            {
+                H = h;
+                B1 = b1;
+                B2 = b2;
+                Tw = tw;
+                T1 = t1;
+                T2 = t2;
+            }
+
+            private double B1 { get; }
+            private double B2 { get; }
+            private double H { get; }
+            private double Tw { get; }
+            private double T1 { get; }
+            private double T2 { get; }
+
+            public double CalcSectionalArea()
+            {
+                return ((H - (T1 + T2)) * Tw + B1 * T1 + B2 * T2) / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return CalcSectionalArea() * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return (H * 2 + B1 * 2 + B2 * 2 - T1 - T2) / 1000;
+            }
+        }
+
+        private class CBeam : ISteel
+        {
+            public CBeam(double h, double b, double c, double t)
+            {
+                H = h;
+                B = b;
+                C = c;
+                T = t;
+            }
+
+            private double H { get; }
+            private double B { get; }
+            private double C { get; }
+            private double T { get; }
+
+            public double CalcSectionalArea()
+            {
+                return (H + B * 2 + C * 2 - T * 4) * T / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return CalcSectionalArea() * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return ((H + B * 2 + C * 2 - T * 2 * 4) * 2 + 1 / 2d * Math.PI * T * 4 + T * 4) / 1000;
+            }
+        }
+
+        private class ZBeam : ISteel
+        {
+            public ZBeam(double h, double b, double c, double t)
+            {
+                H = h;
+                B = b;
+                C = c;
+                T = t;
+            }
+
+            private double H { get; }
+            private double B { get; }
+            private double C { get; }
+            private double T { get; }
+
+            public double CalcSectionalArea()
+            {
+                return (H + B * 2 + C * 2 - T * 2 - T * Math.PI * 45 / 180) * T / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return CalcSectionalArea() * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return ((H + B * 2 + C * 2 - T * 2 * 4 + 1 / 2d * Math.PI * T * 2 + T * Math.PI * 45 / 180 * 2) *
+                    2 + T * 2) / 1000;
+            }
+        }
+
+        private class IBeam : ISteel
+        {
+            public IBeam(string type)
+            {
+                var csvReader = GetResourceDataReader("IBeam.csv").GetRecords<CsvIBeam>();
+                var filtered = csvReader.First(r => r.Type == type);
+                Type = type;
+                H = filtered.H;
+                B = filtered.B;
+                D = filtered.D;
+                T = filtered.T;
+                R = filtered.R;
+                R1 = filtered.R1;
+                SectionalArea = filtered.SectionalArea;
+                TheoreticalWeight = filtered.TheoreticalWeight;
+            }
+
+            private string Type { get; }
+            private double H { get; }
+            private double B { get; }
+            private double D { get; }
+            private double T { get; }
+            private double R { get; }
+            private double R1 { get; }
+            private double SectionalArea { get; }
+            private double TheoreticalWeight { get; }
+
+            public double CalcSectionalArea()
+            {
+                return SectionalArea / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return TheoreticalWeight / 1000 / 7.85 * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return (H * 2 + B * 4) / 1000;
+            }
+        }
+
+        private class HxBeam : ISteel
+        {
+            public HxBeam(string type)
+            {
+                var csvReader = GetResourceDataReader("HXBeam.csv").GetRecords<CsvHxBeam>();
+                var filtered = csvReader.First(r => r.Type == type);
+                Type = type;
+                H = filtered.H;
+                B = filtered.B;
+                T1 = filtered.T1;
+                T2 = filtered.T1;
+                R = filtered.R;
+                SectionalArea = filtered.SectionalArea;
+                TheoreticalWeight = filtered.TheoreticalWeight;
+            }
+
+            private string Type { get; }
+            private double H { get; }
+            private double B { get; }
+            private double T1 { get; }
+            private double T2 { get; }
+            private double R { get; }
+            private double SectionalArea { get; }
+            private double TheoreticalWeight { get; }
+
+            public double CalcSectionalArea()
+            {
+                return SectionalArea / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return TheoreticalWeight / 1000 / 7.85 * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return (H * 2 + B * 4 - T1 * 2) / 1000;
+            }
+        }
+
+        private class CSteel : ISteel
+        {
+            public CSteel(string type)
+            {
+                var csvReader = GetResourceDataReader("CSteel.csv").GetRecords<CsvCSteel>();
+                var filtered = csvReader.First(r => r.Type == type);
+                Type = type;
+                H = filtered.H;
+                B = filtered.B;
+                D = filtered.D;
+                T = filtered.T;
+                R = filtered.R;
+                R1 = filtered.R1;
+                SectionalArea = filtered.SectionalArea;
+                TheoreticalWeight = filtered.TheoreticalWeight;
+            }
+
+            private string Type { get; }
+            private double H { get; }
+            private double B { get; }
+            private double D { get; }
+            private double T { get; }
+            private double R { get; }
+            private double R1 { get; }
+            private double SectionalArea { get; }
+            private double TheoreticalWeight { get; }
+
+            public double CalcSectionalArea()
+            {
+                return SectionalArea / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return TheoreticalWeight / 1000 / 7.85 * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return (H * 2 + B * 4 - D * 2 - T * 2) / 1000;
+            }
+        }
+
+        private class ASteel : ISteel
+        {
+            public ASteel(string type)
+            {
+                var csvReader = GetResourceDataReader("ASteel.csv").GetRecords<CsvASteel>();
+                var filtered = csvReader.First(r => r.Type == type);
+                Type = type;
+                B = filtered.B;
+                D = filtered.D;
+                R = filtered.R;
+                SectionalArea = filtered.SectionalArea;
+                TheoreticalWeight = filtered.TheoreticalWeight;
+            }
+
+            private string Type { get; }
+            private double B { get; }
+            private double D { get; }
+            private double R { get; }
+            private double SectionalArea { get; }
+            private double TheoreticalWeight { get; }
+
+            public double CalcSectionalArea()
+            {
+                return SectionalArea / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return TheoreticalWeight / 1000 / 7.85 * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return (B * 4 - D * 2) / 1000;
+            }
+        }
+
+        private class UaSteel : ISteel
+        {
+            public UaSteel(string type)
+            {
+                var csvReader = GetResourceDataReader("UASteel.csv")
+                    .GetRecords<CsvUaSteel>();
+                var filtered = csvReader.First(r => r.Type == type);
+                Type = type;
+                B1 = filtered.B1;
+                B2 = filtered.B2;
+                D = filtered.D;
+                R = filtered.R;
+                SectionalArea = filtered.SectionalArea;
+                TheoreticalWeight = filtered.TheoreticalWeight;
+            }
+
+            private string Type { get; }
+            private double B1 { get; }
+            private double B2 { get; }
+            private double D { get; }
+            private double R { get; }
+            private double SectionalArea { get; }
+            private double TheoreticalWeight { get; }
+
+            public double CalcSectionalArea()
+            {
+                return SectionalArea / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return TheoreticalWeight / 1000 / 7.85 * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return (B1 * 2 + B2 * 2 - D * 2) / 1000;
+            }
+        }
+
+        private class RtBeam : ISteel
+        {
+            public RtBeam(double b1, double b2, double t)
+            {
+                B1 = b1;
+                B2 = b2;
+                T = t;
+            }
+
+            private double B1 { get; }
+            private double B2 { get; }
+            private double T { get; }
+
+            public double CalcSectionalArea()
+            {
+                return (B1 + B2 - T * 2) * 2 * T / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return CalcSectionalArea() * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return (B1 + B2) * 2 / 1000;
+            }
+        }
+
+        private class CtBeam : ISteel
+        {
+            public CtBeam(double d, double t)
+            {
+                D = d;
+                T = t;
+            }
+
+            private double D { get; }
+            private double T { get; }
+
+            public double CalcSectionalArea()
+            {
+                return (D - T) * Math.PI * T / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return CalcSectionalArea() * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return D * Math.PI / 1000;
+            }
+        }
+
 
         [SuppressMessage("ReSharper", "UnusedMember.Local")]
         [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]

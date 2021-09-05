@@ -1,5 +1,4 @@
 ﻿using System;
-using Office = Microsoft.Office.Core;
 
 namespace SteelSection
 {

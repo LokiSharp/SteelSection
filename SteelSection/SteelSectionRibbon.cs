@@ -21,13 +21,14 @@ namespace SteelSection
             var globalCounter = 0;
             var nullCounter = 0;
             foreach (var cell in range.Cast<Range>()
-                .TakeWhile(cell => globalCounter < globalLimit && nullCounter < nullLimit))
+                .TakeWhile(_ => globalCounter < globalLimit && nullCounter < nullLimit))
             {
                 var density = double.Parse(DensityEditBox.Text);
                 var offset = int.Parse(CalcSteelSectionOffsetEditBox.Text);
-                var result = CalcSteelSection(cell.Text, density);
+                (double, double, double) result = CalcSteelSection(cell.Text, density);
+                var (sectionalArea, theoreticalWeight, surfaceArea) = result;
                 globalCounter++;
-                if (Equals(result, null))
+                if (Equals(sectionalArea, 0.0))
                 {
                     nullCounter++;
                     continue;
@@ -37,19 +38,19 @@ namespace SteelSection
                 if (SectionalAreaCheckBox.Checked)
                 {
                     offsetCounter++;
-                    cell.Offset[0, offset + offsetCounter].Value = result[0];
+                    cell.Offset[0, offset + offsetCounter].Value = sectionalArea;
                 }
 
                 if (TheoreticalWeightCheckBox.Checked)
                 {
                     offsetCounter++;
-                    cell.Offset[0, offset + offsetCounter].Value = result[1];
+                    cell.Offset[0, offset + offsetCounter].Value = theoreticalWeight;
                 }
 
                 if (SurfaceAreaCheckBox.Checked)
                 {
                     offsetCounter++;
-                    cell.Offset[0, offset + offsetCounter].Value = result[2];
+                    cell.Offset[0, offset + offsetCounter].Value = surfaceArea;
                 }
             }
         }
