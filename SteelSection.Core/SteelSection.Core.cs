@@ -12,8 +12,7 @@ namespace SteelSection.Core
 {
     public static class SteelSection
     {
-        private const double Density = 7.85;
-
+        private static double _density = 7.85;
 
         private static (string type, string[] sectional) ParseSteelSection(string input)
         {
@@ -28,8 +27,9 @@ namespace SteelSection.Core
             }
         }
 
-        public static double[] CalcSteelSection(string input, double density = Density)
+        public static double[] CalcSteelSection(string input, double density)
         {
+            if (density != 0) SteelSection._density = density;
             var (type, sectional) = ParseSteelSection(input);
 
             switch (type)
@@ -91,7 +91,7 @@ namespace SteelSection.Core
         private static double[] CalcHBeam(double h, double b1, double b2, double tw, double t1, double t2)
         {
             var sectionalArea = ((h - (t1 + t2)) * tw + b1 * t1 + b2 * t2) / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * Density;
+            var theoreticalWeight = sectionalArea * _density;
             var surfaceArea = (h * 2 + b1 * 2 + b2 * 2 - t1 - t2) / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
 
@@ -101,7 +101,7 @@ namespace SteelSection.Core
         private static double[] CalcCBeam(double h, double b, double c, double t)
         {
             var sectionalArea = (h + b * 2 + c * 2 - t * 4) * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * Density;
+            var theoreticalWeight = sectionalArea * _density;
             var surfaceArea = ((h + b * 2 + c * 2 - t * 2 * 4) * 2 + 1 / 2d * Math.PI * t * 4 + t * 4) / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
 
@@ -111,7 +111,7 @@ namespace SteelSection.Core
         private static double[] CalcZBeam(double h, double b, double c, double t)
         {
             var sectionalArea = (h + b * 2 + c * 2 - t * 2 - t * Math.PI * 45 / 180) * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * Density;
+            var theoreticalWeight = sectionalArea * _density;
             var surfaceArea = ((h + b * 2 + c * 2 - t * 2 * 4 + 1 / 2d * Math.PI * t * 2 + t * Math.PI * 45 / 180 * 2) *
                 2 + t * 2) / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
@@ -124,7 +124,7 @@ namespace SteelSection.Core
             var csvReader = GetResourceDataReader("SteelSection.Resources.data.IBeam.csv").GetRecords<CsvIBeam>();
             var filtered = csvReader.First(r => r.Type == type);
             var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * Density;
+            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
             var surfaceArea = (filtered.H * 2 + filtered.B * 4) / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
             return results;
@@ -135,7 +135,7 @@ namespace SteelSection.Core
             var csvReader = GetResourceDataReader("SteelSection.Resources.data.HXBeam.csv").GetRecords<CsvHxBeam>();
             var filtered = csvReader.First(r => r.Type == type);
             var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * Density;
+            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
             var surfaceArea = (filtered.H * 2 + filtered.B * 4 - filtered.T1 * 2) / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
             return results;
@@ -146,7 +146,7 @@ namespace SteelSection.Core
             var csvReader = GetResourceDataReader("SteelSection.Resources.data.CSteel.csv").GetRecords<CsvCSteel>();
             var filtered = csvReader.First(r => r.Type == type);
             var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * Density;
+            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
             var surfaceArea = (filtered.H * 2 + filtered.B * 4 - filtered.D * 2 - filtered.T * 2) / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
             return results;
@@ -158,7 +158,7 @@ namespace SteelSection.Core
                 .GetRecords<CsvASteel>();
             var filtered = csvReader.First(r => r.Type == type);
             var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * Density;
+            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
             var surfaceArea = (filtered.B * 4 - filtered.D * 2) / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
             return results;
@@ -170,7 +170,7 @@ namespace SteelSection.Core
                 .GetRecords<CsvUaSteel>();
             var filtered = csvReader.First(r => r.Type == type);
             var sectionalArea = filtered.SectionalArea / Math.Pow(1000, 2);
-            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * Density;
+            var theoreticalWeight = filtered.TheoreticalWeight / 1000 / 7.85 * _density;
             var surfaceArea = (filtered.B1 * 2 + filtered.B2 * 2 - filtered.D * 2) / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
             return results;
@@ -179,7 +179,7 @@ namespace SteelSection.Core
         private static double[] CalcRtBeam(double b1, double b2, double t)
         {
             var sectionalArea = (b1 + b2 - t * 2) * 2 * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * Density;
+            var theoreticalWeight = sectionalArea * _density;
             var surfaceArea = (b1 + b2) * 2 / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
             return results;
@@ -188,7 +188,7 @@ namespace SteelSection.Core
         private static double[] CalcCtBeam(double d, double t)
         {
             var sectionalArea = (d - t) * 3.14 * t / Math.Pow(1000, 2);
-            var theoreticalWeight = sectionalArea * Density;
+            var theoreticalWeight = sectionalArea * _density;
             var surfaceArea = d * 3.14 / 1000;
             double[] results = { sectionalArea, theoreticalWeight, surfaceArea };
             return results;
