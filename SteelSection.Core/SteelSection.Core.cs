@@ -103,6 +103,13 @@ namespace SteelSection.Core
                     var steel = new CtBeam(s[0], s[1]);
                     return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
+                case "RS":
+                case "圆钢":
+                {
+                    var s = Array.ConvertAll(sectional, double.Parse);
+                    var steel = new RsSteel(s[0]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 default:
                     return (0.0, 0.0, 0.0);
             }
@@ -470,6 +477,31 @@ namespace SteelSection.Core
             public double CalcSectionalArea()
             {
                 return (D - T) * Math.PI * T / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return CalcSectionalArea() * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return D * Math.PI / 1000;
+            }
+        }
+
+        private class RsSteel : ISteel
+        {
+            public RsSteel(double d)
+            {
+                D = d;
+            }
+
+            private double D { get; }
+
+            public double CalcSectionalArea()
+            {
+                return Math.Pow(D / 2, 2) * Math.PI / Math.Pow(1000, 2);
             }
 
             public double CalcTheoreticalWeight()

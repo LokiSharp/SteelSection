@@ -95,5 +95,14 @@ namespace SteelSection.Tests
             Assert.AreEqual(0.005332, theoreticalWeight, 0.00001);
             Assert.AreEqual(0.28, surfaceArea, 0.001);
         }
+
+        [TestMethod]
+        public void CalcRsSteelSectionTest()
+        {
+            var (sectionalArea, theoreticalWeight, surfaceArea) = CalcSteelSection("RS32", 7.85);
+            Assert.AreEqual(0.0008042, sectionalArea, 0.000001);
+            Assert.AreEqual(0.006313, theoreticalWeight, 0.00001);
+            Assert.AreEqual(0.101, surfaceArea, 0.001);
+        }
     }
 }
