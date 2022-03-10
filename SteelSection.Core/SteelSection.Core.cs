@@ -18,8 +18,8 @@ namespace SteelSection.Core
         {
             try
             {
-                var inputSplit = Regex.Split(input, @"([A-Za-z\u4e00-\u9fa5\[∟]+)([\d\.A-Za-z\*×]+)");
-                return (type: inputSplit[1], sectional: inputSplit[2].Split('*', 'x', 'X', '×'));
+                var inputSplit = Regex.Split(input, @"([A-Za-z\u4e00-\u9fa5\[∟]+)([\d\.A-Za-z\*×~]+)");
+                return (type: inputSplit[1], sectional: inputSplit[2].Split('*', 'x', 'X', '×', '~'));
             }
             catch (IndexOutOfRangeException)
             {
@@ -39,6 +39,20 @@ namespace SteelSection.Core
                 {
                     var s = Array.ConvertAll(sectional, double.Parse);
                     var steel = new HBeam(s[0], s[1], s[1], s[2], s[3], s[3]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
+                case "UHH":
+                case "变截面H型钢变高":
+                {
+                    var s = Array.ConvertAll(sectional, double.Parse);
+                    var steel = new HBeam((s[0] + s[1]) / 2.0, s[2], s[2], s[3], s[4], s[4]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
+                case "UBH":
+                case "变截面H型钢非对称":
+                {
+                    var s = Array.ConvertAll(sectional, double.Parse);
+                    var steel = new HBeam(s[0], s[1], s[2], s[3], s[4], s[5]);
                     return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
                 case "HW":

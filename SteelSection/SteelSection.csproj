@@ -275,7 +275,7 @@
     <ManifestKeyFile>SteelSection_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>7EDB02DD8AC6A118F742BFEE0CBA1F85B83AE5D6</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>35C88049C70970F7CB28966900694DC8502E34F8</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>false</SignAssembly>
