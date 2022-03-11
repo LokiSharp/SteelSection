@@ -21,7 +21,7 @@ namespace SteelSection.Tests
             var (sectionalArea, theoreticalWeight, surfaceArea) = CalcSteelSection("C160*60*20*2.5", 7.85);
             Assert.AreEqual(0.000775, sectionalArea, 0.0000001);
             Assert.AreEqual(0.00608, theoreticalWeight, 0.00001);
-            Assert.AreEqual(0.6257, surfaceArea, 0.0001);
+            Assert.AreEqual(0.6207, surfaceArea, 0.0001);
         }
 
         [TestMethod]

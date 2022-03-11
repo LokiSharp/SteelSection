@@ -177,7 +177,7 @@ namespace SteelSection.Core
 
             public double CalcSurfaceArea()
             {
-                return (H * 2 + B1 * 2 + B2 * 2 - T1 - T2) / 1000;
+                return (H * 2 + B1 * 2 + B2 * 2 - Tw * 2) / 1000;
             }
         }
 
@@ -208,7 +208,7 @@ namespace SteelSection.Core
 
             public double CalcSurfaceArea()
             {
-                return ((H + B * 2 + C * 2 - T * 2 * 4) * 2 + 1 / 2d * Math.PI * T * 4 + T * 4) / 1000;
+                return ((H + B * 2 + C * 2 - T * 2 * 4) * 2 + Math.PI * T * 2 + T * 2) / 1000;
             }
         }
 
@@ -239,8 +239,7 @@ namespace SteelSection.Core
 
             public double CalcSurfaceArea()
             {
-                return ((H + B * 2 + C * 2 - T * 2 * 4 + 1 / 2d * Math.PI * T * 2 + T * Math.PI * 45 / 180 * 2) *
-                    2 + T * 2) / 1000;
+                return ((H + B * 2 + C * 2 - T * 2 * 4) * 2 + Math.PI * T * 3 + T * 2) / 1000;
             }
         }
 
