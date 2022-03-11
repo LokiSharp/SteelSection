@@ -529,10 +529,7 @@ namespace SteelSection.Core
         }
 
 
-        [SuppressMessage("ReSharper", "UnusedMember.Local")]
-        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
-        // ReSharper disable once ClassNeverInstantiated.Local
-        private class CsvIBeam
+        private struct CsvIBeam
         {
             public string Type { get; set; }
             public double H { get; set; }
@@ -545,10 +542,7 @@ namespace SteelSection.Core
             public double TheoreticalWeight { get; set; }
         }
 
-        [SuppressMessage("ReSharper", "UnusedMember.Local")]
-        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
-        // ReSharper disable once ClassNeverInstantiated.Local
-        private class CsvHxBeam
+        private struct CsvHxBeam
         {
             public string Type { get; set; }
             public double H { get; set; }
@@ -560,10 +554,7 @@ namespace SteelSection.Core
             public double TheoreticalWeight { get; set; }
         }
 
-        [SuppressMessage("ReSharper", "UnusedMember.Local")]
-        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
-        // ReSharper disable once ClassNeverInstantiated.Local
-        private class CsvCSteel
+        private struct CsvCSteel
         {
             public string Type { get; set; }
             public double H { get; set; }
@@ -576,10 +567,7 @@ namespace SteelSection.Core
             public double TheoreticalWeight { get; set; }
         }
 
-        [SuppressMessage("ReSharper", "UnusedMember.Local")]
-        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
-        // ReSharper disable once ClassNeverInstantiated.Local
-        private class CsvASteel
+        private struct CsvASteel
         {
             public string Type { get; set; }
             public double B { get; set; }
@@ -589,10 +577,7 @@ namespace SteelSection.Core
             public double TheoreticalWeight { get; set; }
         }
 
-        [SuppressMessage("ReSharper", "UnusedMember.Local")]
-        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
-        // ReSharper disable once ClassNeverInstantiated.Local
-        private class CsvUaSteel
+        private struct CsvUaSteel
         {
             public string Type { get; set; }
             public double B1 { get; set; }
