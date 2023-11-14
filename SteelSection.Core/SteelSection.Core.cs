@@ -124,6 +124,14 @@ namespace SteelSection.Core
                     var steel = new RsSteel(s[0]);
                     return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
+                case "PS":
+                case "板":
+                case "缀板":
+                {
+                    var s = Array.ConvertAll(sectional, double.Parse);
+                    var steel = new PlateSteel(s[0], s[1]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 default:
                     return (0.0, 0.0, 0.0);
             }
@@ -525,6 +533,33 @@ namespace SteelSection.Core
             public double CalcSurfaceArea()
             {
                 return D * Math.PI / 1000;
+            }
+        }
+
+        private class PlateSteel : ISteel
+        {
+            public PlateSteel(double b,double d)
+            {
+                B = b;
+                T = d;
+            }
+
+            private double B { get; }
+            private double T { get; }
+
+            public double CalcSectionalArea()
+            {
+                return B * T / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return CalcSectionalArea() * _density;
+            }
+
+            public double CalcSurfaceArea()
+            {
+                return B * 2 / 1000;
             }
         }
 
