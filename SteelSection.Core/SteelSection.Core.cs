@@ -10,8 +10,21 @@ using CsvHelper;
 
 namespace SteelSection.Core
 {
+    /// <summary>
+    /// 型钢截面面积、理论重量和每米侧表面积。
+    /// 核实日期 2026-11-13。各计算式的标准依据、单位和几何限制写在对应方法上；
+    /// 汇总见仓库 docs/标准核对-2026-11-13.md。标准未给出的表面积按理想化截面周长推导，并标明不是国标公式。
+    /// </summary>
     public static class SteelSection
     {
+        /// <summary>
+        /// 线密度，单位 t/m³，数值上等于 g/cm³。
+        /// GB/T 706-2016 第4.4.1条、GB/T 6728-2025 附录A（M=0.785×A，A 以 cm² 计）和
+        /// GB/T 709-2019 第9.2条（见代码中钢板注释）均以碳钢 7.85 g/cm³ 计算理论重量。
+        /// 截面面积以 m² 返回时，乘以本密度得到 t/m。
+        /// density 参数为 0 时不覆盖本字段，因此会沿用上一次非零密度；这是既有接口行为，标准没有规定，故保留。
+        /// 该字段为静态可变状态，不同密度的调用会互相影响，也不是线程安全的。
+        /// </summary>
         private static double _density = 7.85;
 
         private static (string type, string[] sectional) ParseSteelSection(string input)
@@ -27,6 +40,9 @@ namespace SteelSection.Core
             }
         }
 
+        /// <summary>
+        /// 计算单位长度的截面面积（m²）、理论重量（t/m）和侧表面积（m²/m，不含杆件两端端面）。
+        /// </summary>
         public static (double, double, double) CalcSteelSection(string input, double density)
         {
             if (density != 0) _density = density;
@@ -173,6 +189,11 @@ namespace SteelSection.Core
             private double T1 { get; }
             private double T2 { get; }
 
+            /// <summary>
+            /// 焊接或拼装 H 截面面积，m²。尺寸 mm。
+            /// 直角拼接：(腹板净高)×腹板厚 + 两块翼缘。不计焊缝和圆角。
+            /// 这不是热轧 H 型钢的国标表值。热轧成品见 <see cref="HxBeam"/> 与 GB/T 11263-2024。
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return ((H - (T1 + T2)) * Tw + B1 * T1 + B2 * T2) / Math.Pow(1000, 2);
@@ -183,6 +204,13 @@ namespace SteelSection.Core
                 return CalcSectionalArea() * _density;
             }
 
+            /// <summary>
+            /// 每米侧表面积，m²/m。理想化直角 H 的截面外轮廓周长，不是国标公式。
+            /// 顶翼缘外表面 B1、底翼缘外表面 B2、两翼缘内侧合计 (B1-Tw)+(B2-Tw)、
+            /// 腹板两侧 2(H-T1-T2)、四个翼缘端头 2T1+2T2。翼缘厚度抵消后为
+            /// 2H+2B1+2B2-2Tw，再除以 1000。
+            /// 忽略圆角、焊缝、翼缘坡口和杆件两端端面。输入不含圆角半径，故不能套用 GB/T 11263-2024 的圆角项。
+            /// </summary>
             public double CalcSurfaceArea()
             {
                 return (H * 2 + B1 * 2 + B2 * 2 - Tw * 2) / 1000;
@@ -204,6 +232,16 @@ namespace SteelSection.Core
             private double C { get; }
             private double T { get; }
 
+            /// <summary>
+            /// 冷弯内卷边槽钢截面面积，m²。尺寸 mm，按外侧尺寸、壁厚均匀、四个弯角均为 90° 且圆角半径为 0 的中线长度。
+            /// 中线：腹板 H-t，两翼缘各 B-t，两卷边各 C-t/2，合计 H+2B+2C-4t，再乘 t。
+            /// GB/T 6728-2025（2025-08-29 发布，2026-03-01 实施，代替 GB/T 6728-2017 与 GB/T 6723-2017）
+            /// 第6.1.2.2条把开口型钢面积放在表7～表15，并写明面积仅供参考、表外尺寸由供需双方协商；
+            /// 附录 A 只给圆形、方形、矩形闭口型钢的通式，没有内卷边槽钢通式。
+            /// 第6.1.2.3条表16规定外圆弧半径是随屈服强度和壁厚变化的区间，不是 0。
+            /// 因此本式不是国标公式。本次未能从该标准 PDF 的开口型钢表中解出可核对的数值行（部分页为无法解码的内嵌字体），故保留原式。
+            /// 状态页：https://std.samr.gov.cn/gb/search/gbDetailed?id=3DBA2132869D0D16E06397BE0A0A8119
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return (H + B * 2 + C * 2 - T * 4) * T / Math.Pow(1000, 2);
@@ -214,6 +252,13 @@ namespace SteelSection.Core
                 return CalcSectionalArea() * _density;
             }
 
+            /// <summary>
+            /// 每米侧表面积，m²/m。不是国标公式。整理后为
+            /// [2(H+2B+2C-8t)+2πt+2t]/1000。
+            /// 其中 2πt 等于 4 段半径为 t 的 90° 外圆弧，2t 对应两条卷边切口。
+            /// 这相当于内半径取 0、外半径取壁厚，与 GB/T 6728-2025 表16的半径区间不符，也未计入内圆弧和杆件端面。
+            /// 标准附录 A 的「每米长度的表面积」只适用于闭口型钢。开口型钢表的数值本次未能可靠读出，故不改式。
+            /// </summary>
             public double CalcSurfaceArea()
             {
                 return ((H + B * 2 + C * 2 - T * 2 * 4) * 2 + Math.PI * T * 2 + T * 2) / 1000;
@@ -235,6 +280,14 @@ namespace SteelSection.Core
             private double C { get; }
             private double T { get; }
 
+            /// <summary>
+            /// 冷弯卷边 Z 型钢截面面积，m²。尺寸 mm。
+            /// 现式为 (H+2B+2C-2t-t·π·45/180)·t。其中 t·π·45/180 = πt/4，等于半径 t、圆心角 45° 的弧长。
+            /// 与 <see cref="CBeam"/> 的直角中线扣减不同。GB/T 6728-2025 图14定义了卷边 Z 型钢（代号 ZJ）的 H、B、C、t、R，
+            /// 第6.1.2.5条表19只给出弯曲角度允许偏差，本次读到的正文没有写明卷边公称角度就是 45°。
+            /// 附录 A 没有开口型钢面积通式。因此 45° 是原代码自带的几何假设，不是已核对的国标公式，予以保留。
+            /// 同样忽略表16的外圆弧半径区间和杆件端面。
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return (H + B * 2 + C * 2 - T * 2 - T * Math.PI * 45 / 180) * T / Math.Pow(1000, 2);
@@ -245,6 +298,12 @@ namespace SteelSection.Core
                 return CalcSectionalArea() * _density;
             }
 
+            /// <summary>
+            /// 每米侧表面积，m²/m。不是国标公式。整理后为
+            /// [2(H+2B+2C-8t)+3πt+2t]/1000。
+            /// 3πt 比 C 型钢多出 πt，不能从已读到的 GB/T 6728-2025 条款还原成确定的弯角组合，故保留原式。
+            /// 限制与面积相同：未按表16取外圆弧半径，不含杆件端面。
+            /// </summary>
             public double CalcSurfaceArea()
             {
                 return ((H + B * 2 + C * 2 - T * 2 * 4) * 2 + Math.PI * T * 3 + T * 2) / 1000;
@@ -266,6 +325,7 @@ namespace SteelSection.Core
                 R1 = filtered.R1;
                 SectionalArea = filtered.SectionalArea;
                 TheoreticalWeight = filtered.TheoreticalWeight;
+                SurfaceArea = filtered.SurfaceArea;
             }
 
             private string Type { get; }
@@ -277,20 +337,44 @@ namespace SteelSection.Core
             private double R1 { get; }
             private double SectionalArea { get; }
             private double TheoreticalWeight { get; }
+            private double SurfaceArea { get; }
 
+            /// <summary>
+            /// 截面面积，m²。CSV 中为 mm²。
+            /// GB/T 706-2016（2016-12-30 发布，2017-09-01 实施；截至 2026-11-13 仍为现行。
+            /// GB/T 706-2026 已于 2026-05-25 发布，2026-12-01 才实施，本次不采用）
+            /// 第4.4.3条表4：工字钢面积 = hd+2t(b-d)+0.577(r²-r₁²)，尺寸 mm 时结果为 mm²。
+            /// 第4.1.2条要求面积、理论重量符合附录 A 表 A.1。表中 t 的图注是「腿中间厚度」。
+            /// 用表4系数核算内嵌尺寸，与 CSV 的相对差不超过约 0.1%（例如 10 号：公式 1433.3 mm²，表 A.1 印 14.33 cm²，CSV 为 1434.5 mm²）。
+            /// 差值小于表中重量通常的 0.1 kg/m 修约，故不改面积列。
+            /// https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=80EC2383403568E9F0F850B044C0DC5F
+            /// https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=284DD62E1E487105E757CC4B771A6C65
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return SectionalArea / Math.Pow(1000, 2);
             }
 
+            /// <summary>
+            /// 理论重量，t/m。CSV 为按 7.85 g/cm³ 给出的 kg/m，再按调用密度缩放。
+            /// GB/T 706-2016 第4.4.1条：理论重量按密度 7.85 g/cm³ 计算。
+            /// </summary>
             public double CalcTheoreticalWeight()
             {
                 return TheoreticalWeight / 1000 / 7.85 * _density;
             }
 
+            /// <summary>
+            /// 每米外表面积，m²/m。直接取 GB/T 706-2016 表 A.1「外表面积/(m²/m)」。
+            /// 该列在规范性附录的表头中，标准正文没有给出对应计算式（表4只给截面面积）。
+            /// 表下注明 r、r₁ 用于孔型设计、不做交货条件；外表面积没有单独的交货条款。
+            /// 原式 (2H+4B)/1000 不含腰厚，10 号得到 0.472，表 A.1 为 0.432。直角全周长 2H+4B-2d 为 0.463，仍不等于表值。
+            /// 因此改为表值，不再用简式。表值已含腿内侧斜度、内圆弧和腿端圆弧的结果，但标准未公布拆分方法。
+            /// 单位就是 m²/m，不再除以 1000。不含杆件两端端面。
+            /// </summary>
             public double CalcSurfaceArea()
             {
-                return (H * 2 + B * 4) / 1000;
+                return SurfaceArea;
             }
         }
 
@@ -303,8 +387,11 @@ namespace SteelSection.Core
                 Type = type;
                 H = filtered.H;
                 B = filtered.B;
+                // GB/T 11263-2024 第6.1.1条图1：t1 为腹板厚度，t2 为翼缘厚度。
+                // CSV 的 T1、T2 与之对应。原代码把 T2 写成 filtered.T1，与翼缘厚度列不符。
+                // 面积和重量读表，表面积只用腹板厚度，所以改正后现有计算结果不变。
                 T1 = filtered.T1;
-                T2 = filtered.T1;
+                T2 = filtered.T2;
                 R = filtered.R;
                 SectionalArea = filtered.SectionalArea;
                 TheoreticalWeight = filtered.TheoreticalWeight;
@@ -319,16 +406,34 @@ namespace SteelSection.Core
             private double SectionalArea { get; }
             private double TheoreticalWeight { get; }
 
+            /// <summary>
+            /// 截面面积，m²。CSV 为 mm²。
+            /// 现行标准是 GB/T 11263-2024《热轧H型钢和剖分T型钢》（2024-10-26 发布，2025-05-01 实施，代替并废止 GB/T 11263-2017）。
+            /// https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=8894AAFBAE28DF71A29374720910304F
+            /// 第5.1条将代号改为 H（通用）和 HK（扩展），不再使用 HW/HM/HN/HT。
+            /// 本目录仍保留旧代号，以免改变已有调用字符串。2024 附录 A/B 的逐行尺寸本次没有取到全文，不能声称与现行表逐行一致。
+            /// 第6.1.2条写明圆角半径、外表面积及惯性矩等为参考值，面积和理论重量的参考公式在附录 D。
+            /// 附录 D 的算式原文本次未取得，因此面积继续用内嵌表，不在这里现算。
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return SectionalArea / Math.Pow(1000, 2);
             }
 
+            /// <summary>
+            /// 理论重量，t/m。内嵌 kg/m 按 7.85 g/cm³，再随调用密度缩放。2024 版的重量条款本次未逐条对照全文。
+            /// </summary>
             public double CalcTheoreticalWeight()
             {
                 return TheoreticalWeight / 1000 / 7.85 * _density;
             }
 
+            /// <summary>
+            /// 每米侧表面积，m²/m。理想化直角、平行翼缘、不计圆角的截面外轮廓，不是从附录 D 抄来的公式。
+            /// 外表面 2B，内侧 2(B-t1)，腹板两侧 2(H-2t2)，翼缘端头 4t2，合计 2H+4B-2t1（翼缘厚度抵消）。
+            /// t1 用腹板厚度。忽略圆角弧（每个内圆角会把两段直线 r 换成四分之一圆弧）和杆件两端端面。
+            /// 第6.1.2条说明附录含外表面积参考值，但表中数字和附录 D 算式本次都未读到，所以不改这个几何式，也不声称它等于现行表值。
+            /// </summary>
             public double CalcSurfaceArea()
             {
                 return (H * 2 + B * 4 - T1 * 2) / 1000;
@@ -350,6 +455,7 @@ namespace SteelSection.Core
                 R1 = filtered.R1;
                 SectionalArea = filtered.SectionalArea;
                 TheoreticalWeight = filtered.TheoreticalWeight;
+                SurfaceArea = filtered.SurfaceArea;
             }
 
             private string Type { get; }
@@ -361,20 +467,38 @@ namespace SteelSection.Core
             private double R1 { get; }
             private double SectionalArea { get; }
             private double TheoreticalWeight { get; }
+            private double SurfaceArea { get; }
 
+            /// <summary>
+            /// 截面面积，m²。CSV 为 mm²。
+            /// GB/T 706-2016 第4.4.3条表4：槽钢面积 = hd+2t(b-d)+0.339(r²-r₁²)。
+            /// 第4.1.2条要求符合表 A.2。绝大多数型号与该式及表 A.2 一致（修约差约 0.1% 以内）。
+            /// 6.5 号原 CSV 为 854.7 mm²、6.709 kg/m，表4算出 829.2 mm²、6.509 kg/m，表 A.2 印 8.292 cm²、6.51 kg/m，已按表改正。
+            /// 10 号原 CSV 为 1278.4 mm²，表4为 1274.4 mm²，表 A.2 印 12.74 cm²、10.0 kg/m，已按表4改正。
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return SectionalArea / Math.Pow(1000, 2);
             }
 
+            /// <summary>
+            /// 理论重量，t/m。GB/T 706-2016 第4.4.1条密度 7.85 g/cm³。CSV 为 kg/m，再随调用密度缩放。
+            /// </summary>
             public double CalcTheoreticalWeight()
             {
                 return TheoreticalWeight / 1000 / 7.85 * _density;
             }
 
+            /// <summary>
+            /// 每米外表面积，m²/m。直接取 GB/T 706-2016 表 A.2「外表面积/(m²/m)」，不再除以 1000。
+            /// 正文没有表面积公式。原式 (2H+4B-2d-2t)/1000 对 5 号约为 0.225，表 A.2 为 0.226；
+            /// 对 25a（h=250,b=78,d=7,t=12）原式为 0.774，表 A.2 印 0.722。小规格接近、大规格偏离，故改为表值。
+            /// 直角全周长 2H+4B-2d 会把腿厚端头与内侧缩短抵消，同样不是表值。表值已包含腿斜度与圆弧，标准未给出分解式。
+            /// 不含杆件两端端面。25a 的 0.722 低于相邻 24a 的 0.752，按 PDF 文字层和放大字形均为 0.722，未自行改表。
+            /// </summary>
             public double CalcSurfaceArea()
             {
-                return (H * 2 + B * 4 - D * 2 - T * 2) / 1000;
+                return SurfaceArea;
             }
         }
 
@@ -399,16 +523,32 @@ namespace SteelSection.Core
             private double SectionalArea { get; }
             private double TheoreticalWeight { get; }
 
+            /// <summary>
+            /// 截面面积，m²。CSV 为 mm²。
+            /// GB/T 706-2016 第4.4.3条表4：等边角钢面积 = d(2b-d)+0.215(r²-2r₁²)。
+            /// 内嵌表没有 r₁。已读到的表 A.3 小规格与 CSV 一致，例如 ∠20×3 为 1.132 cm²、0.889 kg/m。
+            /// 大规格表页字体无法解码，未逐行重算，面积列保持原值。
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return SectionalArea / Math.Pow(1000, 2);
             }
 
+            /// <summary>
+            /// 理论重量，t/m。GB/T 706-2016 第4.4.1条密度 7.85 g/cm³。CSV 为 kg/m。
+            /// </summary>
             public double CalcTheoreticalWeight()
             {
                 return TheoreticalWeight / 1000 / 7.85 * _density;
             }
 
+            /// <summary>
+            /// 每米外表面积，m²/m。GB/T 706-2016 表 A.3 有「外表面积/(m²/m)」列，正文没有公式。
+            /// 已读到的样本：∠20×3 为 0.078，∠20×4 为 0.077，∠25×3 为 0.098，∠30×3 为 0.117（单位 m²/m）。
+            /// 现式 (4b-2d)/1000 对 ∠20×3 得 0.074。直角全周长把两条边端（各长 d）算进去后是 4b/1000=0.080，比表值高约 0.002。
+            /// 后半张表 A.3 的字形无法可靠解码，不能把整表抄入，也不能用只拟合前几行的式子冒充国标。
+            /// 因此保留原式，并在测试中锁定它与表 A.3 样本的差值。本式等于两条外表面 2b 加两条内表面 2(b-d)，不含两条边端，也不含圆角和杆件端面。
+            /// </summary>
             public double CalcSurfaceArea()
             {
                 return (B * 4 - D * 2) / 1000;
@@ -439,16 +579,30 @@ namespace SteelSection.Core
             private double SectionalArea { get; }
             private double TheoreticalWeight { get; }
 
+            /// <summary>
+            /// 截面面积，m²。CSV 为 mm²。
+            /// GB/T 706-2016 第4.4.3条表4：不等边角钢面积 = d(B+b-d)+0.215(r²-2r₁²)。
+            /// 内嵌表没有 r₁。表 A.4 所在页的文字层无法解码，面积列未能与原文逐行核对，保持原值。
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return SectionalArea / Math.Pow(1000, 2);
             }
 
+            /// <summary>
+            /// 理论重量，t/m。GB/T 706-2016 第4.4.1条密度 7.85 g/cm³。表 A.4 的重量数字本次未能读出。
+            /// </summary>
             public double CalcTheoreticalWeight()
             {
                 return TheoreticalWeight / 1000 / 7.85 * _density;
             }
 
+            /// <summary>
+            /// 每米外表面积，m²/m。表 A.4 表头与等边角钢一样列有外表面积，但该表数字页未能解码，故不改式。
+            /// 现式 (2B1+2B2-2d)/1000 是两条外表面加两条缩短后的内表面，不含两条边端。
+            /// 把边端 2d 加回后，直角全周长是 2(B1+B2)/1000。这是几何推导，不是表4或表 A.4 中的公式。
+            /// 忽略内圆弧、边端圆弧和杆件端面。在读到表 A.4 数字之前，不能判断哪一个更接近表值。
+            /// </summary>
             public double CalcSurfaceArea()
             {
                 return (B1 * 2 + B2 * 2 - D * 2) / 1000;
@@ -468,19 +622,59 @@ namespace SteelSection.Core
             private double B2 { get; }
             private double T { get; }
 
+            /// <summary>
+            /// 冷弯矩形闭口型钢截面面积，m²。边长与壁厚为 mm。
+            /// GB/T 6728-2025 附录 A（资料性）表 A.2，适用于表1、表2以外的尺寸：
+            /// A = [2t(B+H-2t)-(4-π)(R²-r²)]/100 ，A 为 cm²；r=R-t。
+            /// 公称外圆弧半径：t≤6 mm 时 R=2.0t；6 mm&lt;t≤10 mm 时 R=2.5t；t&gt;10 mm 时 R=3.0t。
+            /// 第6.1.1.6条表4规定产品实际外圆弧半径是区间（碳素钢 t≤3 mm 为 (1.0～2.5)t，其余档另有上下限），
+            /// 附录 A 的单一 R 落在碳素钢区间内，只作为公称参考，不是唯一成品面积。
+            /// 原式 2t(B+H-2t) 是 R=0 的直角箱形，不在表4允许的半径范围内。
+            /// 当 2R 大于较短边时，公称半径与边长不能同时成立，本式仍按附录 A 的代数式计算。
+            /// 圆周率用 Math.PI；镀锌层附录 C.5 另写 π=3.1416，不用于本条。
+            /// </summary>
             public double CalcSectionalArea()
             {
-                return (B1 + B2 - T * 2) * 2 * T / Math.Pow(1000, 2);
+                var outerRadius = NominalOuterCornerRadius(T);
+                var innerRadius = outerRadius - T;
+                var sharpCornerArea = 2.0 * T * (B1 + B2 - 2.0 * T);
+                var cornerAdjustment = (4.0 - Math.PI) * (outerRadius * outerRadius - innerRadius * innerRadius);
+                return (sharpCornerArea - cornerAdjustment) / Math.Pow(1000, 2);
             }
 
             public double CalcTheoreticalWeight()
             {
+                // 表 A.2：M = 0.785×A（A 为 cm²，得 kg/m），即面积 m² × 7.85 t/m³。调用密度不是 7.85 时按比例缩放。
                 return CalcSectionalArea() * _density;
             }
 
+            /// <summary>
+            /// 每米外表面积，m²/m。GB/T 6728-2025 表 A.2：
+            /// As = 2(H+B-4R+πR)×10³ ，单位 mm²/m，故再除以 10⁶ 得到 m²/m，等价于 2(H+B-4R+πR)/1000。
+            /// 只含外侧：四条直线边加一整圈外圆角，不含内表面和杆件端面。R 的取法与面积相同。
+            /// </summary>
             public double CalcSurfaceArea()
             {
-                return (B1 + B2) * 2 / 1000;
+                var outerRadius = NominalOuterCornerRadius(T);
+                return 2.0 * (B1 + B2 - 4.0 * outerRadius + Math.PI * outerRadius) / 1000.0;
+            }
+
+            /// <summary>
+            /// GB/T 6728-2025 表 A.2 的公称外圆弧半径，mm。
+            /// </summary>
+            private static double NominalOuterCornerRadius(double thickness)
+            {
+                if (thickness <= 6.0)
+                {
+                    return 2.0 * thickness;
+                }
+
+                if (thickness <= 10.0)
+                {
+                    return 2.5 * thickness;
+                }
+
+                return 3.0 * thickness;
             }
         }
 
@@ -495,6 +689,14 @@ namespace SteelSection.Core
             private double D { get; }
             private double T { get; }
 
+            /// <summary>
+            /// 圆形闭口型钢截面面积，m²。外径、壁厚为 mm。
+            /// GB/T 6728-2025 附录 A 表 A.1：d=D-2t，A=π(D²-d²)/(4×10²) cm²。
+            /// 该式与圆环精确面积 π(D-t)t 相同。M=0.785×A（kg/m）对应密度 7.85 g/cm³。
+            /// GB/T 17395-2024《钢管尺寸、外形、重量及允许偏差》已于 2025-04-01 实施，并代替 GB/T 17395-2008 与 GB/T 21835-2008，
+            /// 但其重量公式原文本次未取得，圆管面积按已读到的 GB/T 6728-2025 表 A.1。
+            /// https://std.samr.gov.cn/gb/search/gbDetailed?id=D6TruQsr%2Fxg%3D
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return (D - T) * Math.PI * T / Math.Pow(1000, 2);
@@ -505,6 +707,10 @@ namespace SteelSection.Core
                 return CalcSectionalArea() * _density;
             }
 
+            /// <summary>
+            /// 每米外表面积，m²/m。GB/T 6728-2025 表 A.1：As=πD×10³ mm²/m，即 πD/1000。
+            /// 只用公称外径，不含内表面和两端。
+            /// </summary>
             public double CalcSurfaceArea()
             {
                 return D * Math.PI / 1000;
@@ -520,6 +726,14 @@ namespace SteelSection.Core
 
             private double D { get; }
 
+            /// <summary>
+            /// 圆钢截面面积，m²。直径 mm，按实心圆 π(d/2)²。
+            /// 现行标准 GB/T 702-2026《钢棒尺寸、外形、重量及允许偏差》2026-04-30 发布、2026-11-01 实施，
+            /// 代替 GB/T 702-2017、GB/T 908-2019、GB/T 905-1994。
+            /// 第6.1.1.1条规定热轧圆钢尺寸及理论重量应符合附录 A 表 A.1。表 A.1 和其中的系数本次未取得，
+            /// 因此不把手册里常见的 0.00617d² 写成本标准原文，继续用精确圆面积。
+            /// https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=462E3915DC655BAC6815B86128854E89
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return Math.Pow(D / 2, 2) * Math.PI / Math.Pow(1000, 2);
@@ -530,6 +744,10 @@ namespace SteelSection.Core
                 return CalcSectionalArea() * _density;
             }
 
+            /// <summary>
+            /// 每米侧表面积，m²/m。圆柱侧面 πd/1000。标准表 A.1 是否列表面积本次未知。
+            /// 不含两端圆面。这是几何周长，不是已核对的国标公式。
+            /// </summary>
             public double CalcSurfaceArea()
             {
                 return D * Math.PI / 1000;
@@ -547,6 +765,14 @@ namespace SteelSection.Core
             private double B { get; }
             private double T { get; }
 
+            /// <summary>
+            /// 钢板或缀板单位长度的截面面积，m²。宽度、厚度为 mm，按矩形 B×t。
+            /// GB/T 709-2019《热轧钢板和钢带的尺寸、外形、重量及允许偏差》仍为现行
+            /// （2019-03-25 发布，2020-02-01 实施，代替 GB/T 709-2006）。
+            /// https://std.samr.gov.cn/gb/search/gbDetailed?id=8531C702DB296551E05397BE0A0ACD16
+            /// 官方全文本次未打开。公开转载的第9.2条写明按公称尺寸和碳钢密度 7.85 kg/dm³ 计算理论重量，第9.4条指向表14；
+            /// 表14原式未见到。本式与「公称宽度×公称厚度」一致，冷轧板 GB/T 708-2026 要到 2026-12-01 才实施，本次不改用。
+            /// </summary>
             public double CalcSectionalArea()
             {
                 return B * T / Math.Pow(1000, 2);
@@ -557,6 +783,10 @@ namespace SteelSection.Core
                 return CalcSectionalArea() * _density;
             }
 
+            /// <summary>
+            /// 每米表面积，m²/m。只算上下两大面 2B/1000，不含两条厚度为 t 的纵边，也不含两端。
+            /// GB/T 709-2019 未见表面积条款。这是涂装常用的两大面几何量，不是国标公式。
+            /// </summary>
             public double CalcSurfaceArea()
             {
                 return B * 2 / 1000;
@@ -575,6 +805,7 @@ namespace SteelSection.Core
             public double R1 { get; set; }
             public double SectionalArea { get; set; }
             public double TheoreticalWeight { get; set; }
+            public double SurfaceArea { get; set; }
         }
 
         private struct CsvHxBeam
@@ -600,6 +831,7 @@ namespace SteelSection.Core
             public double R1 { get; set; }
             public double SectionalArea { get; set; }
             public double TheoreticalWeight { get; set; }
+            public double SurfaceArea { get; set; }
         }
 
         private struct CsvASteel
