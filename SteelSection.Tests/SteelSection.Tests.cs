@@ -59,16 +59,21 @@ namespace SteelSection.Tests
             var (sectionalArea, theoreticalWeight, surfaceArea) = CalcSteelSection("HW100*100", 7.85);
             Assert.AreEqual(0.002158, sectionalArea, 0.000001);
             Assert.AreEqual(0.0169, theoreticalWeight, 0.00001);
-            // 直角周长 (2*100+4*100-2*6)/1000。若误用翼缘厚度 8 mm，结果是 0.584。
-            Assert.AreEqual(0.588, surfaceArea, 0.0001);
+            // GB/T 11263-2024 表 A.1：H100×100×6×8，r=8，外表面积 0.574 m²/m。直角周长是 0.588。
+            Assert.AreEqual(0.574, surfaceArea, 0.0005);
         }
 
         [TestMethod]
-        public void CalcHxBeamSurfaceUsesWebThickness()
+        public void CalcHxBeamSurfaceMatchesAppendixFilletFormula()
         {
-            // HW500*500：H=502，B=470，t1=20，t2=25。周长用 t1。
+            // HW125*125：H=125，B=125，t1=6.5，r=8。表 A.1 外表面积 0.723 m²/m。
+            var small = CalcSteelSection("HW125*125", 7.85).Item3;
+            Assert.AreEqual(0.723, small, 0.0005);
+
+            // HW500*500：H=502，B=470，t1=20，r=22。周长用腹板厚度和内圆角，不用翼缘厚度。
             var surfaceArea = CalcSteelSection("HW500*500", 7.85).Item3;
-            Assert.AreEqual((502.0 * 2 + 470.0 * 4 - 20.0 * 2) / 1000.0, surfaceArea, 0.0000001);
+            var expected = (502.0 * 2 + 470.0 * 4 - 20.0 * 2 - (8 - 2 * Math.PI) * 22.0) / 1000.0;
+            Assert.AreEqual(expected, surfaceArea, 0.0000001);
         }
 
         [TestMethod]
