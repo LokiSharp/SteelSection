@@ -107,6 +107,12 @@ namespace SteelSection.Core
                     var steel = new CSteel(sectional[0]);
                     return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
+                case "PC":
+                case "平行腿槽钢":
+                {
+                    var steel = new PcSteel(sectional);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 case "∟":
                 case "A":
                 case "角钢":
@@ -505,6 +511,69 @@ namespace SteelSection.Core
             }
         }
 
+        /// <summary>
+        /// GB/T 706-2026 表 A.3 平行腿槽钢。代号 PC，示例 PC200×75×9×11，简记 PC20b。
+        /// 斜腿槽钢仍走 <see cref="CSteel"/>（“[” / CS / 槽钢）。
+        /// </summary>
+        private class PcSteel : ISteel
+        {
+            public PcSteel(string[] sectional)
+            {
+                var rows = GetResourceDataReader("PCSteel.csv").GetRecords<CsvPcSteel>().ToList();
+                CsvPcSteel filtered;
+                if (sectional.Length == 1)
+                {
+                    filtered = rows.First(r => r.Type == sectional[0]);
+                }
+                else
+                {
+                    var s = Array.ConvertAll(sectional, double.Parse);
+                    filtered = rows.First(r =>
+                        Math.Abs(r.H - s[0]) < 0.05 &&
+                        Math.Abs(r.B - s[1]) < 0.05 &&
+                        Math.Abs(r.Tw - s[2]) < 0.05 &&
+                        Math.Abs(r.Tf - s[3]) < 0.05);
+                }
+
+                SectionalArea = filtered.SectionalArea;
+                TheoreticalWeight = filtered.TheoreticalWeight;
+                SurfaceArea = filtered.SurfaceArea;
+            }
+
+            private double SectionalArea { get; }
+            private double TheoreticalWeight { get; }
+            private double SurfaceArea { get; }
+
+            /// <summary>
+            /// 截面面积，m²。CSV 为 mm²，取自 GB/T 706-2026 表 A.3。
+            /// 表5印的是 H·tw+2·tf1·(B−tw)+1.57r²。逐行验算时，表列面积等于
+            /// H·tw+2·tf1·(B−tw)+2(1−π/4)r²（两个内圆角），与 1.57r² 不一致。
+            /// PC8：表 10.35 cm²，圆角式 10.355 cm²，1.57r² 式 11.085 cm²。
+            /// 理论重量与 0.785×表列面积一致，故目录用表 A.3，不按 1.57 重算。
+            /// </summary>
+            public double CalcSectionalArea()
+            {
+                return SectionalArea / Math.Pow(1000, 2);
+            }
+
+            /// <summary>
+            /// 理论重量，t/m。GB/T 706-2026 仍按密度 7.85 g/cm³。CSV 为 kg/m，再随调用密度缩放。
+            /// </summary>
+            public double CalcTheoreticalWeight()
+            {
+                return TheoreticalWeight / 1000 / 7.85 * _density;
+            }
+
+            /// <summary>
+            /// 每米外表面积，m²/m。直接取 GB/T 706-2026 表 A.3，不再除以 1000。
+            /// 正文没有外表面积公式。不含杆件两端端面。
+            /// </summary>
+            public double CalcSurfaceArea()
+            {
+                return SurfaceArea;
+            }
+        }
+
         private class ASteel : ISteel
         {
             public ASteel(string type)
@@ -517,6 +586,7 @@ namespace SteelSection.Core
                 R = filtered.R;
                 SectionalArea = filtered.SectionalArea;
                 TheoreticalWeight = filtered.TheoreticalWeight;
+                SurfaceArea = filtered.SurfaceArea;
             }
 
             private string Type { get; }
@@ -525,12 +595,16 @@ namespace SteelSection.Core
             private double R { get; }
             private double SectionalArea { get; }
             private double TheoreticalWeight { get; }
+            private double SurfaceArea { get; }
 
             /// <summary>
-            /// 截面面积，m²。CSV 为 mm²。
-            /// GB/T 706-2016 第4.4.3条表4：等边角钢面积 = d(2b-d)+0.215(r²-2r₁²)。
-            /// 内嵌表没有 r₁。已读到的表 A.3 小规格与 CSV 一致，例如 ∠20×3 为 1.132 cm²、0.889 kg/m。
-            /// 大规格表页字体无法解码，未逐行重算，面积列保持原值。
+            /// 截面面积，m²。CSV 为 mm²，取自 GB/T 706-2026 表 A.4。
+            /// 表5：等边角钢面积 = t(2B−t)+0.215(r1²−2r2²)。
+            /// 原目录有两格面积与表列不符，但原重量正好等于 0.785×表列面积：
+            /// ∠100×14 面积由 22.256 cm² 改为表列 26.26 cm²（重量仍为 20.611 kg/m）；
+            /// ∠140×12 面积由 35.512 cm² 改为表列 32.51 cm²（重量仍为 25.522 kg/m）。
+            /// 其余型号与表列面积的差在修约范围内，面积和重量未改。
+            /// 表 A.4 比原目录多出 ∠250×22 以及边宽 280～360 的型号，已按表补入。
             /// </summary>
             public double CalcSectionalArea()
             {
@@ -538,7 +612,7 @@ namespace SteelSection.Core
             }
 
             /// <summary>
-            /// 理论重量，t/m。GB/T 706-2016 第4.4.1条密度 7.85 g/cm³。CSV 为 kg/m。
+            /// 理论重量，t/m。GB/T 706-2026 密度 7.85 g/cm³。CSV 为 kg/m，再随调用密度缩放。
             /// </summary>
             public double CalcTheoreticalWeight()
             {
@@ -546,15 +620,13 @@ namespace SteelSection.Core
             }
 
             /// <summary>
-            /// 每米外表面积，m²/m。GB/T 706-2016 表 A.3 有「外表面积/(m²/m)」列，正文没有公式。
-            /// 已读到的样本：∠20×3 为 0.078，∠20×4 为 0.077，∠25×3 为 0.098，∠30×3 为 0.117（单位 m²/m）。
-            /// 现式 (4b-2d)/1000 对 ∠20×3 得 0.074。直角全周长把两条边端（各长 d）算进去后是 4b/1000=0.080，比表值高约 0.002。
-            /// 后半张表 A.3 的字形无法可靠解码，不能把整表抄入，也不能用只拟合前几行的式子冒充国标。
-            /// 因此保留原式，并在测试中锁定它与表 A.3 样本的差值。本式等于两条外表面 2b 加两条内表面 2(b-d)，不含两条边端，也不含圆角和杆件端面。
+            /// 每米外表面积，m²/m。直接取 GB/T 706-2026 表 A.4，不再除以 1000。正文没有外表面积公式。
+            /// ∠20×3 为 0.078。原式 (4B−2t)/1000 得 0.074；把两条边端加回后的直角全周长 4B/1000 为 0.080。
+            /// 表值介于二者之间，含圆角，不含杆件两端端面。
             /// </summary>
             public double CalcSurfaceArea()
             {
-                return (B * 4 - D * 2) / 1000;
+                return SurfaceArea;
             }
         }
 
@@ -572,6 +644,7 @@ namespace SteelSection.Core
                 R = filtered.R;
                 SectionalArea = filtered.SectionalArea;
                 TheoreticalWeight = filtered.TheoreticalWeight;
+                SurfaceArea = filtered.SurfaceArea;
             }
 
             private string Type { get; }
@@ -581,11 +654,12 @@ namespace SteelSection.Core
             private double R { get; }
             private double SectionalArea { get; }
             private double TheoreticalWeight { get; }
+            private double SurfaceArea { get; }
 
             /// <summary>
             /// 截面面积，m²。CSV 为 mm²。
-            /// GB/T 706-2016 第4.4.3条表4：不等边角钢面积 = d(B+b-d)+0.215(r²-2r₁²)。
-            /// 内嵌表没有 r₁。表 A.4 所在页的文字层无法解码，面积列未能与原文逐行核对，保持原值。
+            /// GB/T 706-2026 表5：不等边角钢面积 = t(BL+BS−t)+0.215(r1²−2r2²)。
+            /// 表 A.5 的面积与原目录一致（修约差在 0.08 cm² 以内），面积和重量未改。
             /// </summary>
             public double CalcSectionalArea()
             {
@@ -593,7 +667,7 @@ namespace SteelSection.Core
             }
 
             /// <summary>
-            /// 理论重量，t/m。GB/T 706-2016 第4.4.1条密度 7.85 g/cm³。表 A.4 的重量数字本次未能读出。
+            /// 理论重量，t/m。GB/T 706-2026 密度 7.85 g/cm³。CSV 为 kg/m，再随调用密度缩放。
             /// </summary>
             public double CalcTheoreticalWeight()
             {
@@ -601,14 +675,13 @@ namespace SteelSection.Core
             }
 
             /// <summary>
-            /// 每米外表面积，m²/m。表 A.4 表头与等边角钢一样列有外表面积，但该表数字页未能解码，故不改式。
-            /// 现式 (2B1+2B2-2d)/1000 是两条外表面加两条缩短后的内表面，不含两条边端。
-            /// 把边端 2d 加回后，直角全周长是 2(B1+B2)/1000。这是几何推导，不是表4或表 A.4 中的公式。
-            /// 忽略内圆弧、边端圆弧和杆件端面。在读到表 A.4 数字之前，不能判断哪一个更接近表值。
+            /// 每米外表面积，m²/m。直接取 GB/T 706-2026 表 A.5，不再除以 1000。正文没有外表面积公式。
+            /// ∠25×16×3 为 0.080。原式 (2BL+2BS−2t)/1000 得 0.076；直角全周长 2(BL+BS)/1000 为 0.082。
+            /// 表值含圆角，不含杆件两端端面。
             /// </summary>
             public double CalcSurfaceArea()
             {
-                return (B1 * 2 + B2 * 2 - D * 2) / 1000;
+                return SurfaceArea;
             }
         }
 
@@ -823,6 +896,19 @@ namespace SteelSection.Core
             public double TheoreticalWeight { get; set; }
         }
 
+        private struct CsvPcSteel
+        {
+            public string Type { get; set; }
+            public double H { get; set; }
+            public double B { get; set; }
+            public double Tw { get; set; }
+            public double Tf { get; set; }
+            public double R { get; set; }
+            public double SectionalArea { get; set; }
+            public double TheoreticalWeight { get; set; }
+            public double SurfaceArea { get; set; }
+        }
+
         private struct CsvCSteel
         {
             public string Type { get; set; }
@@ -845,6 +931,7 @@ namespace SteelSection.Core
             public double R { get; set; }
             public double SectionalArea { get; set; }
             public double TheoreticalWeight { get; set; }
+            public double SurfaceArea { get; set; }
         }
 
         private struct CsvUaSteel
@@ -856,6 +943,7 @@ namespace SteelSection.Core
             public double R { get; set; }
             public double SectionalArea { get; set; }
             public double TheoreticalWeight { get; set; }
+            public double SurfaceArea { get; set; }
         }
     }
 }

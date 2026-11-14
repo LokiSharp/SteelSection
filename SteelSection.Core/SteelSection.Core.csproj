@@ -62,6 +62,7 @@
     <EmbeddedResource Include="Resources\data\CSteel.csv" />
     <EmbeddedResource Include="Resources\data\HXBeam.csv" />
     <EmbeddedResource Include="Resources\data\IBeam.csv" />
+    <EmbeddedResource Include="Resources\data\PCSteel.csv" />
     <EmbeddedResource Include="Resources\data\UASteel.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

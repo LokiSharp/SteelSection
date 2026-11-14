@@ -105,14 +105,49 @@ namespace SteelSection.Tests
         }
 
         [TestMethod]
+        public void CalcParallelChannelSectionTest()
+        {
+            // GB/T 706-2026 表 A.3。PC8：10.35 cm²、8.13 kg/m、0.315 m²/m。
+            var (area8, weight8, surface8) = CalcSteelSection("PC8", 7.85);
+            Assert.AreEqual(0.001035, area8, 0.0000001);
+            Assert.AreEqual(0.00813, weight8, 0.0000001);
+            Assert.AreEqual(0.315, surface8, 0.0001);
+
+            // 简记 PC20b 与全称 PC200×75×9×11 是同一行。
+            var brief = CalcSteelSection("PC20b", 7.85);
+            var full = CalcSteelSection("平行腿槽钢200*75*9*11", 7.85);
+            Assert.AreEqual(0.003304, brief.Item1, 0.0000001);
+            Assert.AreEqual(0.0259, brief.Item2, 0.0000001);
+            Assert.AreEqual(0.673, brief.Item3, 0.0001);
+            Assert.AreEqual(brief.Item1, full.Item1, 0.0000001);
+            Assert.AreEqual(brief.Item2, full.Item2, 0.0000001);
+            Assert.AreEqual(brief.Item3, full.Item3, 0.0001);
+
+            // PC40c：91.61 cm²、71.9 kg/m、1.171 m²/m。
+            var (area40, weight40, surface40) = CalcSteelSection("PC40c", 7.85);
+            Assert.AreEqual(0.009161, area40, 0.0000001);
+            Assert.AreEqual(0.0719, weight40, 0.0000001);
+            Assert.AreEqual(1.171, surface40, 0.0001);
+        }
+
+        [TestMethod]
         public void CalcASteelSectionTest()
         {
             var (sectionalArea, theoreticalWeight, surfaceArea) = CalcSteelSection("A20*3", 7.85);
             Assert.AreEqual(0.0001132, sectionalArea, 0.000001);
             Assert.AreEqual(0.000889, theoreticalWeight, 0.00001);
-            // 现式 (4*20-2*3)/1000=0.074。表 A.3 同一行外表面积为 0.078，差值保留为 0.004。
-            Assert.AreEqual(0.074, surfaceArea, 0.0001);
-            Assert.AreEqual(0.004, 0.078 - surfaceArea, 0.0001);
+            // GB/T 706-2026 表 A.4，∠20×3 外表面积 0.078 m²/m。
+            Assert.AreEqual(0.078, surfaceArea, 0.0001);
+
+            // ∠100×14 原面积 22.256 cm² 与重量 20.611 kg/m 不相配；表 A.4 为 26.26 cm²，0.785×26.26≈20.614。
+            var area100 = CalcSteelSection("A100*14", 7.85).Item1;
+            Assert.AreEqual(0.002626, area100, 0.0000001);
+
+            // 表 A.4 新增边宽 280。∠280×20：109.3 cm²、85.8 kg/m、1.103 m²/m。
+            var (area280, weight280, surface280) = CalcSteelSection("角钢280*20", 7.85);
+            Assert.AreEqual(0.01093, area280, 0.0000001);
+            Assert.AreEqual(0.0858, weight280, 0.0000001);
+            Assert.AreEqual(1.103, surface280, 0.0001);
         }
 
         [TestMethod]
@@ -121,7 +156,8 @@ namespace SteelSection.Tests
             var (sectionalArea, theoreticalWeight, surfaceArea) = CalcSteelSection("UA25*16*3", 7.85);
             Assert.AreEqual(0.0001162, sectionalArea, 0.000001);
             Assert.AreEqual(0.000912, theoreticalWeight, 0.00001);
-            Assert.AreEqual(0.076, surfaceArea, 0.001);
+            // GB/T 706-2026 表 A.5，∠25×16×3 外表面积 0.080 m²/m。
+            Assert.AreEqual(0.080, surfaceArea, 0.0001);
         }
 
         [TestMethod]
