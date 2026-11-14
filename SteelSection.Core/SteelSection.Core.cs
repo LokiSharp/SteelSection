@@ -113,6 +113,22 @@ namespace SteelSection.Core
                     var steel = new PcSteel(sectional);
                     return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
+                case "热轧H":
+                {
+                    var steel = new Gb11263Section("H", sectional);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
+                case "HK":
+                {
+                    var steel = new Gb11263Section("HK", sectional);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
+                case "T":
+                case "剖分T":
+                {
+                    var steel = new Gb11263Section("T", sectional);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 case "∟":
                 case "A":
                 case "角钢":
@@ -144,6 +160,24 @@ namespace SteelSection.Core
                 {
                     var s = Array.ConvertAll(sectional, double.Parse);
                     var steel = new RsSteel(s[0]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
+                case "方钢":
+                {
+                    var s = Array.ConvertAll(sectional, double.Parse);
+                    var steel = new StraightBar(s[0], 1.0, 4.0);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
+                case "六角钢":
+                {
+                    var s = Array.ConvertAll(sectional, double.Parse);
+                    var steel = new StraightBar(s[0], Math.Sqrt(3) / 2.0, 2.0 * Math.Sqrt(3));
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
+                case "八角钢":
+                {
+                    var s = Array.ConvertAll(sectional, double.Parse);
+                    var steel = new StraightBar(s[0], 2.0 * (Math.Sqrt(2) - 1.0), 8.0 * (Math.Sqrt(2) - 1.0));
                     return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
                 case "PS":
@@ -574,6 +608,63 @@ namespace SteelSection.Core
             }
         }
 
+        /// <summary>
+        /// GB/T 11263-2024 附录 A 的 H、附录 B 的 HK、附录 C 的剖分 T。
+        /// 代号 H 仍是焊接 H，热轧通用 H 用「热轧H」。HK 是 2024 版新增的扩展 H 型钢。
+        /// </summary>
+        private class Gb11263Section : ISteel
+        {
+            public Gb11263Section(string sectionClass, string[] sectional)
+            {
+                var s = Array.ConvertAll(sectional, double.Parse);
+                var rows = GetResourceDataReader("GB11263.csv").GetRecords<CsvGb11263>();
+                var filtered = rows.First(r =>
+                    r.Class == sectionClass &&
+                    Math.Abs(r.H - s[0]) < 0.05 &&
+                    Math.Abs(r.B - s[1]) < 0.05 &&
+                    Math.Abs(r.T1 - s[2]) < 0.05 &&
+                    Math.Abs(r.T2 - s[3]) < 0.05);
+                SectionalArea = filtered.SectionalArea;
+                TheoreticalWeight = filtered.TheoreticalWeight;
+                SurfaceArea = filtered.SurfaceArea;
+            }
+
+            private double SectionalArea { get; }
+            private double TheoreticalWeight { get; }
+            private double SurfaceArea { get; }
+
+            /// <summary>
+            /// 截面面积，m²。CSV 为 mm²。
+            /// 附录 D 公式 (D.1)：H 和 HK 的面积 S=[2Bt2+(H−2t2)t1+0.858r²]×10⁻² cm²。
+            /// 剖分 T 没有单独的面积公式；表值与 B·t2+(h−t2)t1+0.429r² 一致，0.429 是两个内圆角。
+            /// 写入前逐行用上述式子核对，偏差超过 0.25 cm² 的行没有收入。
+            /// </summary>
+            public double CalcSectionalArea()
+            {
+                return SectionalArea / Math.Pow(1000, 2);
+            }
+
+            /// <summary>
+            /// 理论重量，t/m。GB/T 11263-2024 第6.3.1条密度 7.85 g/cm³，公式 (D.2) 为 M=0.785S。
+            /// CSV 为 kg/m，再随调用密度缩放。
+            /// </summary>
+            public double CalcTheoreticalWeight()
+            {
+                return TheoreticalWeight / 1000 / 7.85 * _density;
+            }
+
+            /// <summary>
+            /// 每米外表面积，m²/m。直接取附录表，不再除以 1000。
+            /// 公式 (D.3) 印的是 (4B+2H−2t1−0.858r)×10⁻³，单位写成了 cm²/m。
+            /// 表值与 (2H+4B−2t1−(8−2π)r)/1000 一致。例如 H100×100×6×8、r=8 的表值是 0.574 m²/m，
+            /// 按印出的 0.858r 会得到约 0.581。因此用表值，不按 0.858r 重算。不含杆件两端。
+            /// </summary>
+            public double CalcSurfaceArea()
+            {
+                return SurfaceArea;
+            }
+        }
+
         private class ASteel : ISteel
         {
             public ASteel(string type)
@@ -806,8 +897,9 @@ namespace SteelSection.Core
             /// 圆钢截面面积，m²。直径 mm，按实心圆 π(d/2)²。
             /// 现行标准 GB/T 702-2026《钢棒尺寸、外形、重量及允许偏差》2026-04-30 发布、2026-11-01 实施，
             /// 代替 GB/T 702-2017、GB/T 908-2019、GB/T 905-1994。
-            /// 第6.1.1.1条规定热轧圆钢尺寸及理论重量应符合附录 A 表 A.1。表 A.1 和其中的系数本次未取得，
-            /// 因此不把手册里常见的 0.00617d² 写成本标准原文，继续用精确圆面积。
+            /// 第6.1.1.1条规定热轧圆钢和方钢的理论重量见附录 A 表 A.1。
+            /// 表 A.1 中 d=10 mm 的圆钢为 0.617 kg/m，等于 πd²/4×7.85 修约到 0.001 kg/m，不是另一套系数。
+            /// 因此继续用精确圆面积，不把表里的修约值逐档抄入。
             /// https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=462E3915DC655BAC6815B86128854E89
             /// </summary>
             public double CalcSectionalArea()
@@ -821,12 +913,55 @@ namespace SteelSection.Core
             }
 
             /// <summary>
-            /// 每米侧表面积，m²/m。圆柱侧面 πd/1000。标准表 A.1 是否列表面积本次未知。
-            /// 不含两端圆面。这是几何周长，不是已核对的国标公式。
+            /// 每米侧表面积，m²/m。圆柱侧面 πd/1000。表 A.1 只列理论重量，没有外表面积。
+            /// 不含两端圆面。这是几何周长，不是国标公式。
             /// </summary>
             public double CalcSurfaceArea()
             {
                 return D * Math.PI / 1000;
+            }
+        }
+
+        /// <summary>
+        /// 实心正多边形钢棒。尺寸是对边距离，mm。
+        /// </summary>
+        private class StraightBar : ISteel
+        {
+            public StraightBar(double size, double areaFactor, double perimeterFactor)
+            {
+                Size = size;
+                AreaFactor = areaFactor;
+                PerimeterFactor = perimeterFactor;
+            }
+
+            private double Size { get; }
+            private double AreaFactor { get; }
+            private double PerimeterFactor { get; }
+
+            /// <summary>
+            /// 截面面积，m²。GB/T 702-2026 表 A.1、表 A.4 的理论重量按锐角正多边形，没有扣圆角。
+            /// 方钢 a=10 mm 为 0.785 kg/m，等于 a²×7.85。
+            /// 六角钢对边 8 mm 为 0.5543 cm²、0.435 kg/m，等于 (√3/2)S²。
+            /// 八角钢对边 16 mm 为 2.121 cm²、1.66 kg/m，等于 2(√2−1)S²。
+            /// </summary>
+            public double CalcSectionalArea()
+            {
+                return AreaFactor * Size * Size / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return CalcSectionalArea() * _density;
+            }
+
+            /// <summary>
+            /// 每米侧表面积，m²/m。表 A.1 和表 A.4 没有这一列。
+            /// 按对边距离对应的外侧棱长：方钢 4a，六角钢 2√3 S，八角钢 8(√2−1)S，再除以 1000。
+            /// 不含两端，也不扣截面图里的圆角。
+            /// </summary>
+            public double CalcSurfaceArea()
+            {
+                return PerimeterFactor * Size / 1000.0;
             }
         }
 
@@ -894,6 +1029,19 @@ namespace SteelSection.Core
             public double R { get; set; }
             public double SectionalArea { get; set; }
             public double TheoreticalWeight { get; set; }
+        }
+
+        private struct CsvGb11263
+        {
+            public string Class { get; set; }
+            public double H { get; set; }
+            public double B { get; set; }
+            public double T1 { get; set; }
+            public double T2 { get; set; }
+            public double R { get; set; }
+            public double SectionalArea { get; set; }
+            public double TheoreticalWeight { get; set; }
+            public double SurfaceArea { get; set; }
         }
 
         private struct CsvPcSteel

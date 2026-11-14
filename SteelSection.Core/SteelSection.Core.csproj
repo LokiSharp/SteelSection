@@ -60,6 +60,7 @@
     <None Include="packages.config" />
     <EmbeddedResource Include="Resources\data\ASteel.csv" />
     <EmbeddedResource Include="Resources\data\CSteel.csv" />
+    <EmbeddedResource Include="Resources\data\GB11263.csv" />
     <EmbeddedResource Include="Resources\data\HXBeam.csv" />
     <EmbeddedResource Include="Resources\data\IBeam.csv" />
     <EmbeddedResource Include="Resources\data\PCSteel.csv" />

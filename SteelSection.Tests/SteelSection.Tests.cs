@@ -131,6 +131,57 @@ namespace SteelSection.Tests
         }
 
         [TestMethod]
+        public void CalcGb11263AddedSections()
+        {
+            // 附录 A。热轧 H 不占用焊接 H 的代号。H95×48×3.2×4.5：7.62 cm²、5.98 kg/m、0.362 m²/m。
+            var (areaH, weightH, surfaceH) = CalcSteelSection("热轧H95*48*3.2*4.5", 7.85);
+            Assert.AreEqual(0.000762, areaH, 0.0000001);
+            Assert.AreEqual(0.00598, weightH, 0.0000001);
+            Assert.AreEqual(0.362, surfaceH, 0.0001);
+
+            // 与旧目录 HW100×100 同一组尺寸，表 A.1 外表面积 0.574 m²/m。
+            var rolled = CalcSteelSection("热轧H100*100*6*8", 7.85);
+            Assert.AreEqual(0.002158, rolled.Item1, 0.0000001);
+            Assert.AreEqual(0.0169, rolled.Item2, 0.0000001);
+            Assert.AreEqual(0.574, rolled.Item3, 0.0001);
+
+            // 附录 B，2024 版新增的 HK。HK120×64×4.4×6.3。
+            var (areaHk, weightHk, surfaceHk) = CalcSteelSection("HK120*64*4.4*6.3", 7.85);
+            Assert.AreEqual(0.001321, areaHk, 0.0000001);
+            Assert.AreEqual(0.0104, weightHk, 0.0000001);
+            Assert.AreEqual(0.475, surfaceHk, 0.0001);
+
+            // 附录 C。T50×50×5×7：5.92 cm²、4.65 kg/m、0.193 m²/m。
+            var split = CalcSteelSection("剖分T50*50*5*7", 7.85);
+            var tee = CalcSteelSection("T50*50*5*7", 7.85);
+            Assert.AreEqual(0.000592, split.Item1, 0.0000001);
+            Assert.AreEqual(0.00465, split.Item2, 0.0000001);
+            Assert.AreEqual(0.193, split.Item3, 0.0001);
+            Assert.AreEqual(split.Item1, tee.Item1, 0.0000001);
+            Assert.AreEqual(split.Item3, tee.Item3, 0.0001);
+        }
+
+        [TestMethod]
+        public void CalcBarSectionsMatchGb702Tables()
+        {
+            // 表 A.1：方钢边长 10 mm，理论重量 0.785 kg/m。
+            var square = CalcSteelSection("方钢10", 7.85);
+            Assert.AreEqual(0.0001, square.Item1, 0.0000000001);
+            Assert.AreEqual(0.000785, square.Item2, 0.0000000001);
+            Assert.AreEqual(0.040, square.Item3, 0.0000001);
+
+            // 表 A.4：六角钢对边 8 mm，面积 0.5543 cm²，重量 0.435 kg/m。
+            var hex = CalcSteelSection("六角钢8", 7.85);
+            Assert.AreEqual(0.5543 / 10000.0, hex.Item1, 0.00000002);
+            Assert.AreEqual(0.000435, hex.Item2, 0.0000002);
+
+            // 表 A.4：八角钢对边 16 mm，面积 2.121 cm²，重量 1.66 kg/m。
+            var oct = CalcSteelSection("八角钢16", 7.85);
+            Assert.AreEqual(2.121 / 10000.0, oct.Item1, 0.00000005);
+            Assert.AreEqual(0.00166, oct.Item2, 0.00001);
+        }
+
+        [TestMethod]
         public void CalcASteelSectionTest()
         {
             var (sectionalArea, theoreticalWeight, surfaceArea) = CalcSteelSection("A20*3", 7.85);
