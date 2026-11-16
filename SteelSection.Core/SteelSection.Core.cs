@@ -148,6 +148,13 @@ namespace SteelSection.Core
                     var steel = new RtBeam(s[0], s[1], s[2]);
                     return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
+                case "焊接矩形管":
+                case "箱形":
+                {
+                    var s = Array.ConvertAll(sectional, double.Parse);
+                    var steel = new WeldedBox(s[0], s[1], s[2], s[3]);
+                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
+                }
                 case "CT":
                 case "圆管":
                 {
@@ -790,7 +797,8 @@ namespace SteelSection.Core
             private double T { get; }
 
             /// <summary>
-            /// 冷弯矩形闭口型钢截面面积，m²。边长与壁厚为 mm。
+            /// 冷弯矩形闭口型钢截面面积，m²。边长与壁厚为 mm，四边共用一个壁厚。
+            /// 钢板焊接、腹板厚和翼缘厚可以不同的箱形截面用 <see cref="WeldedBox"/>。
             /// GB/T 6728-2025 附录 A（资料性）表 A.2，适用于表1、表2以外的尺寸：
             /// A = [2t(B+H-2t)-(4-π)(R²-r²)]/100 ，A 为 cm²；r=R-t。
             /// 公称外圆弧半径：t≤6 mm 时 R=2.0t；6 mm&lt;t≤10 mm 时 R=2.5t；t&gt;10 mm 时 R=3.0t。
@@ -842,6 +850,54 @@ namespace SteelSection.Core
                 }
 
                 return 3.0 * thickness;
+            }
+        }
+
+        /// <summary>
+        /// 钢板焊成的箱形截面。外轮廓高 H、宽 B，两块腹板厚度同为 tw，两块翼缘厚度同为 tf。
+        /// </summary>
+        private class WeldedBox : ISteel
+        {
+            public WeldedBox(double h, double b, double tw, double tf)
+            {
+                H = h;
+                B = b;
+                Tw = tw;
+                Tf = tf;
+            }
+
+            private double H { get; }
+            private double B { get; }
+            private double Tw { get; }
+            private double Tf { get; }
+
+            /// <summary>
+            /// 截面面积，m²。尺寸 mm。
+            /// 成品焊接方矩管只有一个公称壁厚：GB/T 6728-2025 附录 A，以及 T/CSCS《建筑结构用方矩管》
+            /// 附录 A 表 A.1，都是单一 t 加冷弯外圆弧。那种截面走 <see cref="RtBeam"/>。
+            /// GB 50017-2017 表 3.5.1 把箱形截面的腹板厚度和壁板间翼缘厚度分开，但没有截面面积公式。
+            /// 这里按四块直角板相加：两块翼缘各为 B×tf，两块腹板各为 (H−2tf)×tw。
+            /// 翼缘盖住全宽、腹板夹在翼缘之间，与腹板通高、翼缘夹在腹板之间的面积相同。
+            /// 不计焊缝和圆角。200×200×6×9 得 57.84 cm²。
+            /// </summary>
+            public double CalcSectionalArea()
+            {
+                return (2.0 * B * Tf + 2.0 * (H - 2.0 * Tf) * Tw) / Math.Pow(1000, 2);
+            }
+
+            public double CalcTheoreticalWeight()
+            {
+                return CalcSectionalArea() * _density;
+            }
+
+            /// <summary>
+            /// 每米外表面积，m²/m。外轮廓周长 2(H+B)/1000。
+            /// 成品管标准的外表面积含冷弯圆角，不用于这块钢板拼成的直角外皮。
+            /// 不含内表面、焊缝和杆件两端。壁厚不改变外轮廓。
+            /// </summary>
+            public double CalcSurfaceArea()
+            {
+                return 2.0 * (H + B) / 1000.0;
             }
         }
 
