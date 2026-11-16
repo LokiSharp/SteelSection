@@ -143,16 +143,25 @@ namespace SteelSection.Core
                 }
                 case "RT":
                 case "矩形管":
-                {
-                    var s = Array.ConvertAll(sectional, double.Parse);
-                    var steel = new RtBeam(s[0], s[1], s[2]);
-                    return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
-                }
                 case "焊接矩形管":
                 case "箱形":
                 {
                     var s = Array.ConvertAll(sectional, double.Parse);
-                    var steel = new WeldedBox(s[0], s[1], s[2], s[3]);
+                    // 四个数是高度×宽度×腹板厚×翼缘厚，直角箱形，壁厚可以不同。
+                    // 三个数是高度×宽度×壁厚。焊接矩形管、箱形仍按直角；RT、矩形管按冷弯圆角。
+                    if (s.Length >= 4)
+                    {
+                        var box = new WeldedBox(s[0], s[1], s[2], s[3]);
+                        return (box.CalcSectionalArea(), box.CalcTheoreticalWeight(), box.CalcSurfaceArea());
+                    }
+
+                    if (type == "焊接矩形管" || type == "箱形")
+                    {
+                        var box = new WeldedBox(s[0], s[1], s[2], s[2]);
+                        return (box.CalcSectionalArea(), box.CalcTheoreticalWeight(), box.CalcSurfaceArea());
+                    }
+
+                    var steel = new RtBeam(s[0], s[1], s[2]);
                     return (steel.CalcSectionalArea(), steel.CalcTheoreticalWeight(), steel.CalcSurfaceArea());
                 }
                 case "CT":
