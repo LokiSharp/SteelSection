@@ -250,6 +250,35 @@ namespace SteelSection.Tests
         }
 
         [TestMethod]
+        public void CalcWeldedBoxAllowsDifferentWallThickness()
+        {
+            // 200×200×6×9：2×200×9 + 2×(200−18)×6 = 5784 mm²。外皮 2×(200+200)/1000 = 0.8。
+            var (area, weight, surface) = CalcSteelSection("箱形200*200*6*9", 7.85);
+            Assert.AreEqual(0.005784, area, 0.0000000001);
+            Assert.AreEqual(0.005784 * 7.85, weight, 0.0000000001);
+            Assert.AreEqual(0.8, surface, 0.0000001);
+
+            // 长边和短边不同，腹板和翼缘厚度也不同。
+            var rectangular = CalcSteelSection("焊接矩形管300*200*6*9", 7.85);
+            const double rectangularMm2 = 2.0 * 200.0 * 9.0 + 2.0 * (300.0 - 18.0) * 6.0;
+            Assert.AreEqual(rectangularMm2 / 1000000.0, rectangular.Item1, 0.0000000001);
+            Assert.AreEqual(2.0 * (300.0 + 200.0) / 1000.0, rectangular.Item3, 0.0000001);
+
+            // 壁厚相同的直角箱形大于冷弯圆角矩形管。三个参数的矩形管仍是冷弯。
+            var sharp = CalcSteelSection("箱形120*80*6*6", 7.85);
+            var coldFormed = CalcSteelSection("RT120*80*6", 7.85);
+            Assert.AreEqual(2.0 * 6.0 * (120.0 + 80.0 - 12.0) / 1000000.0, sharp.Item1, 0.0000000001);
+            Assert.IsTrue(sharp.Item1 > coldFormed.Item1);
+
+            // 矩形管写出四个尺寸时，和焊接矩形管是同一个直角截面。
+            var byRectName = CalcSteelSection("矩形管300*200*6*9", 7.85);
+            Assert.AreEqual(rectangular.Item1, byRectName.Item1, 0.0000000001);
+            Assert.AreEqual(rectangular.Item2, byRectName.Item2, 0.0000000001);
+            Assert.AreEqual(rectangular.Item3, byRectName.Item3, 0.0000001);
+            Assert.AreEqual(sharp.Item1, CalcSteelSection("焊接矩形管120*80*6", 7.85).Item1, 0.0000000001);
+        }
+
+        [TestMethod]
         public void CalcCtBeamSectionTest()
         {
             var (sectionalArea, theoreticalWeight, surfaceArea) = CalcSteelSection("CT89*2.5", 7.85);
